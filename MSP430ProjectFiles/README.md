@@ -9,25 +9,25 @@ how to setup these tools and how to compile and run a msp430 project.
 Setup
 --------
 Install all of these Packages through apt-get
-	* git-core	
-	* gcc-4.4
-	* texinfo
-	* patch
-	* libncurses5-dev
-	* zlibc
-	* zlib1g-dev
-	* libx11-dev
-	* libusb-dev
-	* libreadline6-dev
-	* binutils-msp430
-	* gcc-msp430
-	* gdb-msp430
-	* msp430-libc
-	* msp430mcu
-	* mspdebug
-	* srecord
-	* libsrecord-dev
-	* libgmp-dev
+* git-core	
+* gcc-4.4
+* texinfo
+* patch
+* libncurses5-dev
+* zlibc
+* zlib1g-dev
+* libx11-dev
+* libusb-dev
+* libreadline6-dev
+* binutils-msp430
+* gcc-msp430
+* gdb-msp430
+* msp430-libc
+* msp430mcu
+* mspdebug
+* srecord
+* libsrecord-dev
+* libgmp-dev
 
 * * *
 
