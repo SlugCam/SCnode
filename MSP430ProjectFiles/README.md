@@ -34,7 +34,7 @@ Install all of these Packages through apt-get
 Compilation
 --------
 basic Compilation:
-msp430-gcc -Os -mmcu=msp430g2553 -o main.elf main.c
+`msp430-gcc -Os -mmcu=msp430g2553 -o main.elf main.c`
 
 more details see:  [msp430-gcc Manual](http://mspgcc.sourceforge.net/manual/)
 * * *
@@ -43,9 +43,9 @@ mspdebug
 --------
 You must use mspdebug to program and run your projects.
 Typically you run these commands:
-1. sudo mspdebug rf2500
-2. erase
-3. prog main.elf
-4. run
+1. `sudo mspdebug rf2500`
+2. `erase`
+3. `prog main.elf`
+4. `run`
 
 For using interupts and other options see this: [mspdebug Manual](http://mspdebug.sourceforge.net/manual.html)
