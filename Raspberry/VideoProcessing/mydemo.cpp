@@ -77,6 +77,9 @@ typedef struct
    int demoInterval;                   /// Interval between camera settings changes
    int opencv_width;                   /// Size of the opencv image
    int opencv_height;				   /// Size of the opencv image
+   int maxLength;					   /// Number of frames on each video
+   int consecutiveHumans;			   /// Minimum number of consecutive humans detection to continue recording
+   int consecutiveNoHumans;			   /// Minimum number of consecutive frames without humans to stop recording
    RASPIPREVIEW_PARAMETERS preview_parameters;   /// Preview setup parameters
    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
@@ -90,12 +93,18 @@ typedef struct
  */
 typedef struct
 {
-   VideoWriter file_handle;                   /// File handle to write buffer data to.
-   RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
-   int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
-   Mat image;
-   Mat image2;
-   VCOS_SEMAPHORE_T complete_semaphore;
+   string fileName;							/// File name
+   VideoWriter fileHandle;					/// File handle to write buffer data to.
+   VideoWriter fileHandle2;					/// File handle to write buffer data to.
+   RASPIVID_STATE *pstate;					/// pointer to our state in case required in callback
+   int abort;								/// Set to 1 in callback if an error occurs to attempt to abort the capture
+   Mat image;								/// Main image captured
+   Mat image2;								/// Image processed in opencCV
+   int humanDetected;						/// Number of consecutive frames with human detected
+   int noHumanDetected;						/// Number of consecutive frames without human
+   int framesRecorded;						/// Number of frames recorded
+   bool uploading;							/// Control if any file is being uploaded.
+   VCOS_SEMAPHORE_T complete_semaphore;		
 } PORT_USERDATA;
 
 /// Command ID's and Structure defining our command line options
@@ -157,11 +166,39 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 {
 	MMAL_BUFFER_HEADER_T *new_buffer;
 	PORT_USERDATA * userdata = (PORT_USERDATA *) port->userdata;
-	MMAL_POOL_T *pool = userdata->pstate->video_pool;
+	RASPIVID_STATE *pstate = userdata->pstate;
 
 	mmal_buffer_header_mem_lock(buffer);
 	memcpy(userdata->image.data, buffer->data, userdata->pstate->width * userdata->pstate->height);
-	userdata->file_handle << userdata->image;
+
+	userdata->fileHandle << userdata->image;
+	userdata->framesRecorded++;
+	// Check if the video didn't record humans in the first 3 frames
+	if(userdata->framesRecorded > 4 && userdata->framesRecorded < pstate->maxLength && userdata->humanDetected < pstate->consecutiveHumans)
+	{
+		//remove(userdata->fileName.c_str());
+		//system("poweroff");
+	}
+	// Check if the video is less then the maximun length and didn't have human in the pre determinated time
+	else if(userdata->framesRecorded < pstate->maxLength && userdata->noHumanDetected >= pstate->consecutiveNoHumans)
+	{
+		//stop recording and wait until finished upload to power off
+		//while(uploading){};
+		//system("poweroff");
+		//cout<<"No humans for a while\n";
+	}
+	// Check if the video has reached the maximum length and open a new one
+	else if(userdata->framesRecorded >= pstate->maxLength)
+	{
+		cout<"Turning off\n";
+		system("shutdown -h now");
+		//userdata->fileName = to_string(rand()) + ".avi";
+		//userdata->fileHandle.open(userdata->fileName, CV_FOURCC('D','I','V','X'), 3, userdata->image.size(), false);
+		//userdata->framesRecorded = 0;
+		//cout<<"Long enough to create a new file\n";
+	}
+
+
 	mmal_buffer_header_mem_unlock(buffer);
 
 	if (vcos_semaphore_trywait(&(userdata->complete_semaphore)) != VCOS_SUCCESS) {
@@ -174,7 +211,7 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 	if (port->is_enabled) {
 		MMAL_STATUS_T status;
 
-		new_buffer = mmal_queue_get(pool->queue);
+		new_buffer = mmal_queue_get(pstate->video_pool->queue);
 
 		if (new_buffer)
 			status = mmal_port_send_buffer(port, new_buffer);
@@ -281,7 +318,7 @@ static MMAL_STATUS_T create_camera_component(RASPIVID_STATE *state)
 
    video_port->buffer_size = state->width * state->height * 12 / 8;
    video_port->buffer_num = 1;
-   printf("  Camera video buffer_size = %d\n", video_port->buffer_size);
+   //printf("  Camera video buffer_size = %d\n", video_port->buffer_size);
 
    status = mmal_port_format_commit(video_port);
 
@@ -482,8 +519,11 @@ int main(int argc, const char **argv)
 		callback_data.image2 = Mat(Size(state.opencv_width, state.opencv_height), CV_8UC1);
 
 		//set up video file
-		VideoWriter record(to_string(rand()) + ".avi", CV_FOURCC('D','I','V','X'), 3, callback_data.image.size(), false);
-		callback_data.file_handle = record;
+		callback_data.fileName = to_string(rand()) + ".avi";
+		VideoWriter record(callback_data.fileName, CV_FOURCC('D','I','V','X'), 3, callback_data.image.size(), false);
+		VideoWriter record2("fore_"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 3, callback_data.image2.size(), false);
+		callback_data.fileHandle = record;
+		callback_data.fileHandle2 = record2;
 
       if (state.verbose)
          fprintf(stderr, "Starting component connection stage\n");
@@ -533,9 +573,12 @@ int main(int argc, const char **argv)
       if (status == MMAL_SUCCESS)
       {
          // Set up our userdata - this is passed though to the callback where we need the information.
-         callback_data.file_handle = record;
          callback_data.pstate = &state;
          callback_data.abort = 0;
+		 callback_data.humanDetected = 0;
+		 callback_data.noHumanDetected = 0;
+		 callback_data.uploading = false;
+		 callback_data.framesRecorded = 0;
 
 		 camera_video_port->userdata = (struct MMAL_PORT_USERDATA_T *)&callback_data;
 
@@ -576,84 +619,122 @@ int main(int argc, const char **argv)
             goto error;
         }
 
-        /*if (mmal_port_parameter_set_boolean(camera_video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
-        {
-            goto error;
-        }*/
-
 		vcos_semaphore_create(&callback_data.complete_semaphore, "mmal_opencv_demo-sem", 0);
 		int opencv_frames = 0;
 
 		//namedWindow("Display window", CV_WINDOW_AUTOSIZE);
 		//namedWindow("Display window2", CV_WINDOW_AUTOSIZE);
+
+		//Background subtraction variables
 		const int varThreshold = 9;
 		const bool bShadowDetection = false;
 		const int history = 0;
 		BackgroundSubtractorMOG2 bg(history,varThreshold,bShadowDetection);
-
-		opencv_frames = 0;
+		bg.set("detectShadows", false);
 
 		//Configuration params from the config file
-		int dilate_n = 5;
-		int erode_n = 1;
+		int dilate_n = 5;						//Number of Dialtes
+		int erode_n = 1;						//Number of Erodes
+		state.maxLength = 900;					//10 minutes of video approximately (seconds * 3)
+		state.consecutiveHumans = 3;
+		state.consecutiveNoHumans = 45;			//15 seconds without human on the scene (seconds * 3)
 
-		opencv_frames=OPENCV_CONFIG_FRAMES;
+		//Variables of excution
+		bool firstRead = false;
+		bool exposure = false;
+
+		//system("/bin/bash /home/pi/build5/start.sh");
+
+		int humanCounter = 0;
+		int thingCounter = 0;
+
 		while (1) {
 			if (vcos_semaphore_wait(&(callback_data.complete_semaphore)) == VCOS_SUCCESS) {
 				opencv_frames++;
 
-				if(opencv_frames == 102)
+				//Turn off exposure after the inicialization
+				if(opencv_frames == 2 && exposure == false )
 				{
 					paramsCamera.exposureMode = MMAL_PARAM_EXPOSUREMODE_OFF;
 					set_camera_parameters(state.camera_component, paramsCamera);
+					exposure = true;
 				}
-			//	//Read configuration file
-			//	/*if(opencv_frames >= OPENCV_CONFIG_FRAMES)
-			//	{
-			//		string line="";
-			//		ifstream file;
 
-			//		file.open("config");
+				//Read configuration file
+				if(opencv_frames >= OPENCV_CONFIG_FRAMES || firstRead == false)
+				{
+					string line="";
+					ifstream file;
 
-			//		while(!file.eof())
-			//		{
-			//			string parameter;
-			//			string value;
+					file.open("config");
+					if (!file.is_open())
+					{
+						cout<<"Error opening configuration file\n";
+					}
 
-			//			getline(file, line);
-			//			if(line.length()>=3)
-			//			{
-			//				parameter = line.substr(0,line.find('='));
-			//				value = line.substr(line.find('=')+1);
-			//				cout<<"parameter:"<<parameter<<endl;
-			//				cout<<"value:"<<value<<endl;
-			//				if(parameter == "dilate_n")
-			//				{
-			//					int aux;
-			//					istringstream ( value ) >> aux;
-			//					dilate_n=aux;
-			//				}
-			//				else if(parameter == "erode_n")
-			//				{
-			//					int aux;
-			//					istringstream ( value ) >> aux;
-			//					erode_n=aux;
-			//				}
-			//			}
+					while(!file.eof())
+					{
+						string parameter;
+						string value;
 
-			//		}
+						getline(file, line);
+						if(line.length()>=3)
+						{
+							parameter = line.substr(0,line.find('='));
+							value = line.substr(line.find('=')+1);
+							//cout<<"parameter:"<<parameter<<endl;
+							//cout<<"value:"<<value<<endl;
+							if(parameter == "dilate_n")
+							{
+								int aux;
+								istringstream ( value ) >> aux;
+								dilate_n=aux;
+							}
+							else if(parameter == "erode_n")
+							{
+								int aux;
+								istringstream ( value ) >> aux;
+								erode_n=aux;
+							}
+							else if(parameter == "maxLength")
+							{
+								int aux;
+								istringstream ( value ) >> aux;
+								state.maxLength=aux;
+							}
+							else if(parameter == "consecutiveHumans")
+							{
+								int aux;
+								istringstream ( value ) >> aux;
+								state.consecutiveHumans=aux;
+							}
+							else if(parameter == "consecutiveNoHumans")
+							{
+								int aux;
+								istringstream ( value ) >> aux;
+								state.consecutiveNoHumans=aux;
+							}
+						}
 
-			//		opencv_frames=0;
-			//	}*/
+					}
+					file.close();
+					if(!firstRead)
+						firstRead = true;
+					else
+						opencv_frames = 0;
+				}
 
 				//Resizes the userdata.image and saves on userdata.image2 with the size of userdata.image2
 				resize(callback_data.image, callback_data.image2, callback_data.image2.size(), 0, 0, CV_INTER_LINEAR);
-				//subtract and find the contours
+
+				//Subtract and find the contours
 				Mat fore;
 				bg.operator() (callback_data.image2,fore);
 
 				erode(fore, fore, Mat(), Point(-1,-1), erode_n);
 				dilate(fore, fore, Mat(), Point(-1,-1), dilate_n);
+
+				callback_data.fileHandle2 << fore;
 
 				//imshow( "Display window", fore);
 
@@ -664,31 +745,22 @@ int main(int argc, const char **argv)
 								CV_RETR_EXTERNAL, // retrieve only external contours
 								CV_CHAIN_APPROX_SIMPLE); // aproximate contours
 			
-				//verify if the contour is a human
+				//Verify if the contour is a human
+				int human = 0;
 				for(int i=0;i < contours.size();i++)
 				{
 					vector<cv::Point> aux;
 					approxPolyDP(contours[i], aux, 2, true);
 					double x = arcLength(aux, true);
-					if(x>100)
+					if(x > 100 && x < 1440)
 					{
 						Rect body_i = boundingRect(contours[i]);
 
 						if(body_i.height>2*body_i.width)
 						{
 
-							printf("  Human %d [%d, %d, %d, %d]\n", i, body_i.x, body_i.y, body_i.width, body_i.height);
-
-							rectangle(callback_data.image2, 
-										body_i, 
-										Scalar(0,255,255), 
-										3 
-										);
-						}
-						else
-						{
-							printf("  Thing %d [%d, %d, %d, %d]\n", i, body_i.x, body_i.y, body_i.width, body_i.height);
-
+							//printf("  Human %d [%d, %d, %d, %d]\n", i, body_i.x, body_i.y, body_i.width, body_i.height);
+							human++;
 							rectangle(callback_data.image2, 
 										body_i, 
 										Scalar(0,255,255), 
@@ -697,14 +769,22 @@ int main(int argc, const char **argv)
 						}
 					}
 				}
-
-				/*if(opencv_frames%100 == 0)
+				if(human > 0)
 				{
-					ostringstream ss;
-					ss << opencv_frames/100;
-					imwrite("test"+ss.str()+".jpg", callback_data.image); 
-			
-				}*/
+					callback_data.humanDetected++;
+					callback_data.noHumanDetected = 0;
+
+					if(callback_data.humanDetected == 3)
+						//cout<<"good time to record\n";
+
+					cout<<"HHHHHHHHHHUUUUUUUUUUUMMMMMMMMMMMAAAAAAAAAAANNNNNNNNN\n";
+				} 
+				else
+				{
+					callback_data.humanDetected = 0;
+					callback_data.noHumanDetected++;
+				}
+
 				//imshow( "Display window2", callback_data.image2);
 			
 				//char key = (char) waitKey(1);
