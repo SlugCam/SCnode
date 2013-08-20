@@ -5,10 +5,25 @@
  */
 package calibrate;
 
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -27,6 +42,9 @@ public class Main extends javax.swing.JFrame {
     Point t_r = new Point();
     Point b_r = new Point();
     
+    final Graphics g;
+    String imagePath;
+    
     final ArrayList<Point> aux = new ArrayList();
     int clicked = 0;
     int stageClicks = 4;
@@ -34,7 +52,7 @@ public class Main extends javax.swing.JFrame {
     /**
      * Creates new form Main
      */
-    public Main(){
+    public Main(String path) throws IOException{
         initComponents();
         jLabel3.setVisible(false);
         jLabel4.setVisible(false);
@@ -42,7 +60,13 @@ public class Main extends javax.swing.JFrame {
         jButton1.setEnabled(false);
         jButton2.setVisible(false);
         this.setLocationRelativeTo(getRootPane());
-        jLabel5.addMouseListener(new MouseListener() {
+        g = jPanel1.getGraphics();
+        imagePath = path;
+        
+        ImageIcon icon = new ImageIcon(imagePath);
+        jLabel5.setIcon(icon);
+        
+        jPanel1.addMouseListener(new MouseListener() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -50,6 +74,10 @@ public class Main extends javax.swing.JFrame {
                 {
                     Point p = e.getPoint();
                     aux.add(p);
+                    
+                    g.setColor(Color.red);
+                    g.fillOval(p.x-4, p.y-4, 8, 8);
+                    
                     clicked++;
                 }
                 if(clicked == stageClicks)
@@ -125,6 +153,11 @@ public class Main extends javax.swing.JFrame {
         jLabel1.setToolTipText("");
 
         jButton2.setText("Previous");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
 
         jButton1.setText("Next");
         jButton1.setMaximumSize(new java.awt.Dimension(73, 23));
@@ -208,59 +241,129 @@ public class Main extends javax.swing.JFrame {
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         aux.clear();
+        repaint();
         jButton1.setEnabled(false);
         clicked = 0;
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         int position = 0;
-        for(Point p : aux)
-        {
-            if(stage == 0)
-            {
-                if(position == 0)
-                    p1H = p;
-                else if(position == 1)
-                    p2H = p;
-                else if(position == 2)
-                    p3H = p;
-                else if(position == 3)
-                    p4H = p;
-                
-                stageClicks = 4;
-                clicked = 0;
-                jLabel1.setText("<html>Draw the <b>vertical</b> points following the image order</html>");
-                jButton1.setEnabled(false);
-                jButton2.setVisible(true);
-            }
-            else if(stage == 1)
-            {
-                if(position == 0)
-                    p1V = p;
-                else if(position == 1)
-                    p2V = p;
-                else if(position == 2)
-                    p3V = p;
-                else if(position == 3)
-                    p4V = p;
-                
-                stageClicks = 2;
-                clicked = 0;
-                jButton1.setText("Finish");
-                jLabel1.setText("<html>Draw the <b>Reference</b> points following the image order</html>");
-                jButton1.setEnabled(false);
-            }
-            else if(stage == 2)
-            {
-                if(position == 0)
-                    b_r = p;
-                else if(position == 1)
-                    t_r = p;
-            }
-            position++;
+        
+        if(stage == 2 && jTextField1.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this,"Enter the reference object size.");
         }
-        stage++;
+        else{
+            for(Point p : aux)
+            {
+                if(stage == 0)
+                {
+                    if(position == 0)
+                        p1H = p;
+                    else if(position == 1)
+                        p2H = p;
+                    else if(position == 2)
+                        p3H = p;
+                    else if(position == 3)
+                        p4H = p;
+
+                    stageClicks = 4;
+                    clicked = 0;
+                    jLabel1.setText("<html>Draw the <b>vertical</b> points following the image order</html>");
+                    jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/calibrate/calibrate_vertical_square.png")));
+                    jButton1.setEnabled(false);
+                    jButton2.setVisible(true);
+                    repaint();
+                }
+                else if(stage == 1)
+                {
+                    if(position == 0)
+                        p1V = p;
+                    else if(position == 1)
+                        p2V = p;
+                    else if(position == 2)
+                        p3V = p;
+                    else if(position == 3)
+                        p4V = p;
+
+                    stageClicks = 2;
+                    clicked = 0;
+                    jButton1.setText("Finish");
+                    jLabel1.setText("<html>Draw the <b>Reference</b> points following the image order</html>");
+                    jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/calibrate/calibrate_object.png")));
+                    jButton1.setEnabled(false);
+                    jLabel3.setVisible(true);
+                    jLabel4.setVisible(true);
+                    jTextField1.setVisible(true);
+                    repaint();
+                }
+                else if(stage == 2)
+                {
+                    if(position == 0)
+                        t_r = p;
+                    else if(position == 1)
+                        b_r = p;
+                    
+                    String path = imagePath.substring(0,imagePath.lastIndexOf(File.separator))+"\\calibration";
+                    FileWriter output = null;
+                    try {
+                        File f = new File(path);
+                        f.createNewFile();
+                        output = new FileWriter(f.getPath());
+                        output.write("p1H = "+p1H.x+","+p1H.y+"\n");
+                        output.write("p2H = "+p2H.x+","+p2H.y+"\n");
+                        output.write("p3H = "+p3H.x+","+p3H.y+"\n");
+                        output.write("p4H = "+p4H.x+","+p4H.y+"\n");
+                        output.write("p1V = "+p1V.x+","+p1V.y+"\n");
+                        output.write("p2V = "+p2V.x+","+p2V.y+"\n");
+                        output.write("p3V = "+p3V.x+","+p3V.y+"\n");
+                        output.write("p4V = "+p4V.x+","+p4V.y+"\n");
+                        output.write("t_r = "+t_r.x+","+t_r.y+"\n");
+                        output.write("b_r = "+b_r.x+","+b_r.y+"\n");
+                        output.write("size = "+jTextField1.getText());
+                        output.close();
+                        
+                    } catch (IOException ex) {
+                        Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    
+                    
+                    
+                    this.dispose();
+                }
+                position++;
+            }
+            aux.clear();
+            stage++;
+        }
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        stage--;
+        aux.clear();
+        if(stage == 0)
+                {
+                    stageClicks = 4;
+                    clicked = 0;
+                    jLabel1.setText("<html>Draw the <b>horizontal</b> points following the image order</html>");
+                    jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/calibrate/calibrate_horizontal_square.png")));
+                    jButton1.setEnabled(false);
+                    jButton2.setVisible(false);
+                    repaint();
+                }
+                else if(stage == 1)
+                {
+                    stageClicks = 4;
+                    clicked = 0;
+                    jButton1.setText("Next");
+                    jLabel1.setText("<html>Draw the <b>vertical</b> points following the image order</html>");
+                    jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/calibrate/calibrate_vertical_square.png")));
+                    jButton1.setEnabled(false);
+                    jLabel3.setVisible(false);
+                    jLabel4.setVisible(false);
+                    jTextField1.setVisible(false);
+                    repaint();
+                }
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -270,7 +373,7 @@ public class Main extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    public javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel5;
     public javax.swing.JPanel jPanel1;
     private javax.swing.JTextField jTextField1;
     // End of variables declaration//GEN-END:variables

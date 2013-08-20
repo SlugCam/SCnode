@@ -5,11 +5,18 @@
  */
 package calibrate;
 
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
@@ -21,7 +28,7 @@ public class Calibrate {
         /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
+    public static void main(String args[]) throws IOException {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -44,15 +51,23 @@ public class Calibrate {
             java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
-        final Main main = new Main();
-        final File file = new File(main,true);
-        file.setModal(true);
-        file.setVisible(true);
-
-        ImageIcon image = new ImageIcon(file.jTextField1.getText());
-        main.jLabel5.setIcon(image);
-        main.setVisible(true);
-   
+        final FileDialog file = new FileDialog(null, true);
+        
+        file.jTextField1.setText("C:\\Users\\Caio\\Desktop\\IMG_5976.JPG");
+  
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                file.setVisible(true);
+                Main main = null;
+                try {
+                    main = new Main(file.jTextField1.getText());
+                } catch (IOException ex) {
+                    Logger.getLogger(Calibrate.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                main.setVisible(true);
+            }
+        });
+        
         
     }
 }
