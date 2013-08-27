@@ -190,8 +190,6 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 	// Check if the video has reached the maximum length and open a new one
 	else if(userdata->framesRecorded >= pstate->maxLength)
 	{
-		cout<"Turning off\n";
-		system("shutdown -h now");
 		//userdata->fileName = to_string(rand()) + ".avi";
 		//userdata->fileHandle.open(userdata->fileName, CV_FOURCC('D','I','V','X'), 3, userdata->image.size(), false);
 		//userdata->framesRecorded = 0;
@@ -510,9 +508,12 @@ int main(int argc, const char **argv)
 	  srand (time(NULL));
 
 	  //size of the image processed by the OpenCV
-		int scale = 3;
+		float scale = 3;
 		state.opencv_width = 1280 / scale;
 		state.opencv_height = 720 / scale;
+
+		float scale_width = 1280 / state.opencv_width;
+		float scale_height = 720 / state.opencv_height;
 
 		/* setup opencv */
 		callback_data.image = Mat(Size(state.width, state.height), CV_8UC1);
@@ -521,7 +522,7 @@ int main(int argc, const char **argv)
 		//set up video file
 		callback_data.fileName = to_string(rand()) + ".avi";
 		VideoWriter record(callback_data.fileName, CV_FOURCC('D','I','V','X'), 3, callback_data.image.size(), false);
-		VideoWriter record2("fore_"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 3, callback_data.image2.size(), false);
+		VideoWriter record2("fore_"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 3, callback_data.image.size(), false);
 		callback_data.fileHandle = record;
 		callback_data.fileHandle2 = record2;
 
@@ -626,17 +627,18 @@ int main(int argc, const char **argv)
 		//namedWindow("Display window2", CV_WINDOW_AUTOSIZE);
 
 		//Background subtraction variables
-		const int varThreshold = 9;
-		const bool bShadowDetection = false;
+		/*const int varThreshold = 9;
+		const bool bShadowDetection = true;
 		const int history = 0;
-		BackgroundSubtractorMOG2 bg(history,varThreshold,bShadowDetection);
-		bg.set("detectShadows", false);
+		BackgroundSubtractorMOG2 bg(history,varThreshold,bShadowDetection);*/
+		BackgroundSubtractorMOG2 bg;
+		bg.set("detectShadows", true);
 
 		//Configuration params from the config file
 		int dilate_n = 5;						//Number of Dialtes
 		int erode_n = 1;						//Number of Erodes
 		state.maxLength = 900;					//10 minutes of video approximately (seconds * 3)
-		state.consecutiveHumans = 3;
+		state.consecutiveHumans = 1;
 		state.consecutiveNoHumans = 45;			//15 seconds without human on the scene (seconds * 3)
 
 		//Variables of excution
@@ -644,9 +646,6 @@ int main(int argc, const char **argv)
 		bool exposure = false;
 
 		//system("/bin/bash /home/pi/build5/start.sh");
-
-		int humanCounter = 0;
-		int thingCounter = 0;
 
 		while (1) {
 			if (vcos_semaphore_wait(&(callback_data.complete_semaphore)) == VCOS_SUCCESS) {
@@ -750,16 +749,29 @@ int main(int argc, const char **argv)
 				for(int i=0;i < contours.size();i++)
 				{
 					vector<cv::Point> aux;
-					approxPolyDP(contours[i], aux, 2, true);
-					double x = arcLength(aux, true);
-					if(x > 100 && x < 1440)
-					{
-						Rect body_i = boundingRect(contours[i]);
 
+					approxPolyDP(contours[i], aux, 2, true);
+					double arcLenght = arcLength(aux, true);
+					double area = contourArea(contours[i]);
+					Rect body_i = boundingRect(contours[i]);
+
+					if(arcLenght > 100 && arcLenght < 1440)
+					{
+						cout<< (area/(body_i.width*body_i.height))*100 <<"\n";
+						//check if the height is 2 times the width
 						if(body_i.height>2*body_i.width)
 						{
-
-							//printf("  Human %d [%d, %d, %d, %d]\n", i, body_i.x, body_i.y, body_i.width, body_i.height);
+							human++;
+							rectangle(callback_data.image2, 
+										body_i, 
+										Scalar(0,255,255), 
+										3 
+										);
+						}
+						//check if the contour area is bigger than 80% of the rectangle area
+						//(supposition that can distinguish the diference between an animal and a group of people)
+						else if(area>(0.8*body_i.width*body_i.height))
+						{
 							human++;
 							rectangle(callback_data.image2, 
 										body_i, 
@@ -769,21 +781,25 @@ int main(int argc, const char **argv)
 						}
 					}
 				}
+
+				//Add human detected
 				if(human > 0)
 				{
 					callback_data.humanDetected++;
 					callback_data.noHumanDetected = 0;
 
-					if(callback_data.humanDetected == 3)
-						//cout<<"good time to record\n";
-
-					cout<<"HHHHHHHHHHUUUUUUUUUUUMMMMMMMMMMMAAAAAAAAAAANNNNNNNNN\n";
+					cout<<"Humans detected:"<<humanDetected;
 				} 
+				//Add human not detect
 				else
 				{
 					callback_data.humanDetected = 0;
 					callback_data.noHumanDetected++;
 				}
+
+				//Generate video in low quality with the square arround the object.
+				resize(callback_data.image2, callback_data.image, callback_data.image.size(), 0, 0, CV_INTER_LINEAR);
+				callback_data.fileHandle2 << callback_data.image;
 
 				//imshow( "Display window2", callback_data.image2);
 			
