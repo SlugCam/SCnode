@@ -91,7 +91,7 @@ The abstract goes here.
 %% ********************** IEEE KEYWORDS ********************************
 
 \begin{IEEEkeywords}
-IEEEtran, journal, \LaTeX, magnetics, paper, template.
+Wireless Sensor Networks, Smart Camera Networks, Surveillance, Computer vision.
 \end{IEEEkeywords}}
 
 
@@ -107,7 +107,8 @@ IEEEtran, journal, \LaTeX, magnetics, paper, template.
 \section{Introduction}
 
 
-\IEEEPARstart{T}{his} paper discusses ...
+\IEEEPARstart{T}{his} paper discusses an overview of how Smart Camera Networks have
+influenced todays surveillance systems.
 
 \subsection{Background, motivation} 
 \-- Goals of the paper, What problems this papers solves \\
@@ -120,12 +121,12 @@ surveillance and crime detection nodes. \\
 
 \section{Smart Camera Surveillance}
 Researchers and Commercial companies are designing wireless smart camera networks in surveillance applications to prevent crimes in public spaces. To
-understand how these state of the art systems are improving on designs of the past one must define what makes these surveillance systems "smart". These
-smart camera network systems have common goals when it comes creating more efficient surveillance applications. First, the issue of network resource
-utilization is an issue all systems need to consider if those surveillance systems are to be scalable in crowded wireless deployment scenarios. Then in
-almost every application considering power consumption of each node is very important if one is give an analysis of the systems efficiency. If these
-systems are to be monitoring public spaces the smart camera networks need to be keeping the data recorded secure and also ensuring that the data recorded
-is actually quality information that could be used by officials. \\
+understand how these state of the art systems are improving on designs of the past, one must define what makes these surveillance systems "smart". 
+These smart camera network systems have common goals when it comes creating more efficient surveillance applications. First, the issue of network
+resource utilization is an issue all systems need to consider if those surveillance systems are to be scalable in crowded wireless deployment 
+scenarios. Then in almost every application considering power consumption of each node is very important if one is give an analysis of the systems 
+efficiency. If these systems are to be monitoring public spaces the smart camera networks need to be keeping the data recorded secure and also ensuring 
+that the data recorded is actually quality information that could be used by officials. \\
 
 
 %% Wireless Smart Camera Networks Taxonomy Divided into 3 sections
@@ -137,28 +138,48 @@ not in the system share the connection. One way to combat this is by assuring th
 used to do detection of events. A common technique is to use other non-image sensors to provide separate data that can be used to determine if the camera
 should record video at all.
 
-\-- A comparison chart of different hardware components of their systems 
-	being used\\ \\
-\-- A comparison chart of software design features (computer vision, network
-	topologies, bandwidth/energy saving techniques, etc. )\\ \\
-\-- Explain each classification criterion, provide examples, etc.\\ \\
+
 
 \subsection{Lowering Power Consumption}
+When discussing wireless sensor networks , power consumption is always brought up as a concern 
 
-\subsection{Quality of data produced}
+\-- Use comparision chart in survey paper to show power consumption comparisons of current smart camera platforms\\ \\
+
+\subsection{Quality of data recorded}
+
+\section{Processing the Video Data}
+
+By the computer vision side, we can see that the background subtraction is the most used method to detect moving objects with single cameras in a 
+real-time world. There are different algorithms to implement it, with different computer efficiencies and accuracies, what can make each one more
+suitable for each system. Methods like Mixture of Gaussians (MoG) or simple frame differencing are largely used, but the problem with these methods is
+their computational efficiency. In ~\cite{CS-MoG} it is shown the possibility of having a low power and computationally efficient (up to 5 times
+faster) system based on background subtraction using a known method: Compressed Sensing. Using CS is possible to compress the image, in other words,
+reduce the amount of data to be processed, while retaining much of the original image. The compressed image can be submitted to a MoG algorithm to
+detect the objects on the scene with a lower solution complexity. The results shown a very efficient system, that they called CS-MoG, with an accuracy
+very close to a system that uses MoG only.
+
+The Citric system one that resembles ~\cite{CS-MoG} by the steps that are used in the object detection. At first they make a comparison of computational efficiency relative to the complexity of compressing and uncompressing using JPEG and Compressed Sensing, resulting in a better performance of the CS  for uncompressing. After that they use frame differencing to do background subtraction and then track the objects and store their tracks.
+On the HuSIMS system they take one step further after tracking the objects, it is implemented an algorithm that is able to trigger alarms if something looks irregular. After doing the object tracking they are able to define regions, representing where the most common tracks pass by, and sinks, representing places where the objects usually appear or disappear from the scene. Having these two defined sections there is an algorithm capable of analyzing the image and verify, for example, if the objects of a certain type is following the expected region for its type, or if the object went from one sink to another. In a case where one of these predicted behaviors looks different, an alarm is triggered notifying that a problem could happened.
+A problem very common with single camera systems is the object occlusions that can occurs when an object cross by other moving or static objects. A good method for this case is shown in ~\cite{Occlusion}. After a background subtraction using the Approximate Median Filter to detect the objects, they are classified accordingly to the change of their shape through the time. It is used a Kalman filter to predict the position of the objects and then compare the current positions with the predicted ones through an algorithm that allows the system to classify the object as a single person or a group of people. The particular characteristic of this algorithm is the ability to track objects with complete occlusion for a long duration.
+Different implementations for security camera networks are emerging, each one with its characteristics, performance and advantages. By looking at all the implementations already said, we can say that a good system could be made by the union of all these methods, if performances wasn’t a constraint, because in most of them it is used the same base algorithm but with different securities and tracking objectives. Create an efficient system could mean a hybrid one.
 
 \section{Example Wireless Smart Camera Systems}
+
+\-- A comparison chart of software design features (computer vision, network
+	topologies, bandwidth/energy saving techniques, etc. )\\ \\
 \-- Going into more detail of possibly one of the examples shown above in
 	the taxonomy\\ \\
-\--
+\-- A comparison chart of different hardware components of their systems 
+	being used\\ \\
+\-- A discussion of both research and commercial designs\\ \\
 
 \section{Our Project}
 
 \subsection{Hardware}
  \-- Discuss breifly about the different components and why they were chosen \\
 
-\subsubsection{WiFi 802.11n \\}
-\subsubsection{MSP430 \\}
+\subsubsection{Why we chose Wifi \\}
+\subsubsection{Multimodal capabilities \\}
 
 \subsection{Software}
 \subsubsection{Image Processing}
