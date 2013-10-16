@@ -117,6 +117,7 @@ IEEEtran, journal, \LaTeX, magnetics, paper, template.
 surveillance and crime detection nodes. \\
 
 %%Requirements for today's wireless Smart Camera Networks
+
 \section{Smart Camera Surveillance}
 Researchers and Commercial companies are designing wireless smart camera networks in surveillance applications to prevent crimes in public spaces. To
 understand how these state of the art systems are improving on designs of the past one must define what makes these surveillance systems "smart". These
@@ -126,13 +127,25 @@ almost every application considering power consumption of each node is very impo
 systems are to be monitoring public spaces the smart camera networks need to be keeping the data recorded secure and also ensuring that the data recorded
 is actually quality information that could be used by officials. \\
 
-\section{Wireless Smart Camera Networks Taxonomy}
-\-- Purpose criteria for classification of wireless Smart camera networks \\ \\
+
+%% Wireless Smart Camera Networks Taxonomy Divided into 3 sections
+%% 1 Bandwidth efficieny 2 power consumption 3 Quality of data
+\subsection{Bandwidth Efficiency}
+Video data is rich with useful information that other sensor source can’t provide, however video data quickly becomes very large in size as time goes on.
+Nodes competing for network connectivity while maintaining quality on live video feed can soon become a problem as the network grows or if other nodes
+not in the system share the connection. One way to combat this is by assuring the data recorded is useful and actually recording video data that can be
+used to do detection of events. A common technique is to use other non-image sensors to provide separate data that can be used to determine if the camera
+should record video at all.
+
 \-- A comparison chart of different hardware components of their systems 
 	being used\\ \\
 \-- A comparison chart of software design features (computer vision, network
 	topologies, bandwidth/energy saving techniques, etc. )\\ \\
 \-- Explain each classification criterion, provide examples, etc.\\ \\
+
+\subsection{Lowering Power Consumption}
+
+\subsection{Quality of data produced}
 
 \section{Example Wireless Smart Camera Systems}
 \-- Going into more detail of possibly one of the examples shown above in
@@ -162,8 +175,9 @@ is actually quality information that could be used by officials. \\
 \section{Future Directions for Smart Wireless Camera Networks}
 \-- Discuss research that has been proposed in the area and that is just begining to be implemented or hasn't yet at all.\\
 
-\section{Conclusion}
-\-- tie up paper
+\section{Lessons to take away}
+
+\-- just so it compiles here are the references to be used:
 ~\cite{DSPcam}
 ~\cite{HuSIMS}
 ~\cite{Citric}
