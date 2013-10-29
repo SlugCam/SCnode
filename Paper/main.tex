@@ -1,7 +1,7 @@
 %\title{SWEETcam submission for IEEE Computer}
 
 %%
-%% Draft version 1.0
+%% Draft version 2.0
 %%
 %% Authors:
 %% Kevin Abas
@@ -9,9 +9,6 @@
 %% Katia Obraczka 
 %%
 
-%% The template used was by Michael Shell
-%% see http://www.michaelshell.org/
-%% for current contact information.
 
 %%*************************************************************************
 %% Legal Notice:
@@ -56,7 +53,8 @@
 % ** BIBTEXT PACKAGE **
 \usepackage{cite}
 
-
+% ** CAPTION PACKAGE **
+\usepackage{caption}
 %%----------------------------------------------------------------------
 
 \begin{document}
@@ -64,7 +62,7 @@
 
 %% ***********************  THE TITLE **********************************
 
-\title{Designing Efficient Smart Camera Networks For Public Saftey}
+\title{Efficient Smart Camera Networks For Public Safety}
 
 
 %% ***********************  AUTHORS ************************************
@@ -84,14 +82,16 @@ Rio de Janeiro, 21941-909, Brazil}
 
 \IEEEtitleabstractindextext{%
 \begin{abstract}
-The abstract goes here.
+\textit{Abstract} \-- With the advancement of wireless smart camera platforms many systems have emerged offering more 
+efficient surveillance solutions for public spaces. After surveying more recent surveillance systems from the research community
+a classification is created to better help us understand what the future holds in this field.
 \end{abstract}
 
 
 %% ********************** IEEE KEYWORDS ********************************
 
 \begin{IEEEkeywords}
-Wireless Sensor Networks, Smart Camera Networks, Surveillance, Computer vision.
+Wireless sensor networks, Smart camera networks, Computer vision, Sensor networks, Human safety
 \end{IEEEkeywords}}
 
 
@@ -106,49 +106,86 @@ Wireless Sensor Networks, Smart Camera Networks, Surveillance, Computer vision.
 
 \section{Introduction}
 
-
-\IEEEPARstart{T}{his} paper discusses an overview of how Smart Camera Networks have
-influenced todays surveillance systems.
-
-\subsection{Background, motivation} 
-\-- Goals of the paper, What problems this papers solves \\
-
-\subsubsection{Today's applications (summary)}
+\IEEEPARstart{T}{his} paper discusses an overview of how Smart Camera Networks are changing surveillance systems of today.\\
+\-- Goals of the paper, What problems this papers solves, background, motivation \\
+\-- discuss Wireless sensor networks in general and how data rich video sensor are\\
 \-- Some things current Smart Camera networks assist with when it comes to 
 surveillance and crime detection nodes. \\
 
 %%Requirements for today's wireless Smart Camera Networks
 
-\section{Smart Camera Surveillance}
-Researchers and Commercial companies are designing wireless smart camera networks in surveillance applications to prevent crimes in public spaces. To
-understand how these state of the art systems are improving on designs of the past, one must define what makes these surveillance systems "smart". 
-These smart camera network systems have common goals when it comes creating more efficient surveillance applications. First, the issue of network
-resource utilization is an issue all systems need to consider if those surveillance systems are to be scalable in crowded wireless deployment 
+\section{Wireless Smart Camera Surveillance}
+Researchers and Commercial companies are designing wireless smart camera networks in surveillance applications to prevent crimes, detect environmental emergencies,
+monitor behavior of the elderly, and track vehicular traffic in public spaces. Many camera platforms have been designed to meet strict hardware requirements
+~\cite{Flexi-WVSNP} for wireless deployment in surveillance systems. However, different requirements must be stated when looking at the application specific 
+scenario of surveillance in public spaces. To understand how these state of the art systems are improving on designs of the past, one must define what makes these
+surveillance systems "smart". These smart camera network systems have common goals when it comes creating more efficient surveillance applications. First, the issue 
+of network resource utilization is an issue all systems need to consider if those surveillance systems are to be scalable in crowded wireless deployment 
 scenarios. Then in almost every application considering power consumption of each node is very important if one is give an analysis of the systems 
-efficiency. If these systems are to be monitoring public spaces the smart camera networks need to be keeping the data recorded secure and also ensuring 
-that the data recorded is actually quality information that could be used by officials. \\
+efficiency. If these systems are to be monitoring public spaces the smart camera networks need to be keeping the data recorded secure and also
+ensuring that the data recorded is actually quality information that could be used by officials. 
 
-
-%% Wireless Smart Camera Networks Taxonomy Divided into 3 sections
-%% 1 Bandwidth efficieny 2 power consumption 3 Quality of data
 \subsection{Bandwidth Efficiency}
-Video data is rich with useful information that other sensor source can’t provide, however video data quickly becomes very large in size as time goes on.
-Nodes competing for network connectivity while maintaining quality on live video feed can soon become a problem as the network grows or if other nodes
-not in the system share the connection. One way to combat this is by assuring the data recorded is useful and actually recording video data that can be
-used to do detection of events. A common technique is to use other non-image sensors to provide separate data that can be used to determine if the camera
-should record video at all.
-
+Video data is rich with useful information that other sensor sources can’t provide, however video data quickly becomes very large in size as time goes 
+on.Nodes competing for network connectivity while maintaining quality on live video feed can soon become a problem as the network grows or if other 
+nodes not in the system share the connection. One way to combat this is by assuring the data recorded is useful and actually recording video data that 
+can be used to do detection of events by doing in network processing ~\cite{Citric}.\\
+Taking advantage of multiple cameras is a very useful method to determine not only which node has the best view of the object, but also if the overlapping
+video footage can be combined to provide more useful data. Extensive research has been done on both bandwidth and energy efficiencies of wireless
+smart camera networks that make use of overlapping footage ~\cite{AccLatEnergy}.
 
 
 \subsection{Lowering Power Consumption}
-When discussing wireless sensor networks , power consumption is always brought up as a concern 
-
-\-- Use comparision chart in survey paper to show power consumption comparisons of current smart camera platforms\\ \\
+When discussing wireless sensor networks , power consumption is always brought up as a concern in deployment and scalability. Smart camera networks are 
+no different, and many researchers have discussed methods to design nodes that consume less power. One such method would be to limit the amount of time 
+a camera needs to actually be powered on, and rely on more low power sensors to trigger a wake up. Using this sensor fusing technique allows the system
+to operate a different power consumption states . Such states must be carefully looked at and many researchers 
+consider every level of operation of each camera node ~\cite{AccLatEnergy}~\cite{EnergyCons}. Making Smart hardware choices, such at choosing low power communication
+options such as 802.15.4, can also have a large effect on how much power the system uses.
 
 \subsection{Quality of data recorded}
+Recording live high-resolution data all the time with no inference will soon become a thing of the past. Every second of video recorded counts when the 
+surveillance system scales to much larger deployments such as in smart cities~\cite{HuSIMS}. Doing local proccessing and decision making first can have 
+a huge change on the amount of data that actually needs to be transmitted and archived. Whether it is event detection or object identification, preventing 
+false alarms by checking the data locally can be very helpful. The research area of computer vision has grown at a very fast rate and only in the past few years
+are we seeing wireless surveillance systems adopt these sophisticated algorithms.
 
-\section{Processing the Video Data}
 
+\twocolumn[
+\section{Classifying Smart Wireless Surveillance Systems}
+\begin{center}
+\captionof{table}{A taxonomy of current research surveillance systems that use wireless smart cameras.}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{| l | p{3cm} | l | p{3cm} | p{2cm} | p{3cm} | p{3cm} | l| p{3cm} |}
+    \hline
+    System & Energy Efficiency & Multimodal & Bandwidth Efficiency & Wireless & Video Analysis & System Software & Multicamera & Security \\ \hline
+    
+    Citric & sleeping nodes, only wake on presence of objects & Audio & In-network image processing, small image size & 802.15.4 and Bluetooth
+     & . & Embedded Linux & Yes & Pre-processing of data at node \\ \hline
+    
+    HuSIMS & . & . & .  & . & . & . & . & .  \\ \hline
+    
+    OmniEye & . & . & .  & WiPort 802.11b/g & . & . & . & .  \\ \hline
+    
+    Wi-FLIP & . & . & .  & . & . & . & . & .  \\ \hline
+    
+    SensEye & . & . & .  & . & . & . & . & .  \\ \hline
+    
+    DTN-Citric & . & . & .  & . & . & . & . & .  \\ \hline
+    
+    Flexi-WVSNP & . & . & .  & . & . & . & . & .  \\ \hline
+    
+    MeshEye & . & . & .  & . & . & . & . & .  \\ \hline
+	
+\end{tabular}}
+\end{center}
+]
+
+\subsection{Energy Efficiency}
+\subsection{Sensor Fusion}
+\subsection{Network Load and Scalability}
+\subsection{Wireless Communication}
+\subsection{Computer Vision in Surveillance}
 By the computer vision side, we can see that the background subtraction is the most used method to detect moving objects with single cameras in a 
 real-time world. There are different algorithms to implement it, with different computer efficiencies and accuracies, what can make each one more
 suitable for each system. Methods like Mixture of Gaussians (MoG) or simple frame differencing are largely used, but the problem with these methods is
@@ -158,54 +195,77 @@ reduce the amount of data to be processed, while retaining much of the original 
 detect the objects on the scene with a lower solution complexity. The results shown a very efficient system, that they called CS-MoG, with an accuracy
 very close to a system that uses MoG only.
 
-The Citric system one that resembles ~\cite{CS-MoG} by the steps that are used in the object detection. At first they make a comparison of computational efficiency relative to the complexity of compressing and uncompressing using JPEG and Compressed Sensing, resulting in a better performance of the CS  for uncompressing. After that they use frame differencing to do background subtraction and then track the objects and store their tracks.
-On the HuSIMS system they take one step further after tracking the objects, it is implemented an algorithm that is able to trigger alarms if something looks irregular. After doing the object tracking they are able to define regions, representing where the most common tracks pass by, and sinks, representing places where the objects usually appear or disappear from the scene. Having these two defined sections there is an algorithm capable of analyzing the image and verify, for example, if the objects of a certain type is following the expected region for its type, or if the object went from one sink to another. In a case where one of these predicted behaviors looks different, an alarm is triggered notifying that a problem could happened.
-A problem very common with single camera systems is the object occlusions that can occurs when an object cross by other moving or static objects. A good method for this case is shown in ~\cite{Occlusion}. After a background subtraction using the Approximate Median Filter to detect the objects, they are classified accordingly to the change of their shape through the time. It is used a Kalman filter to predict the position of the objects and then compare the current positions with the predicted ones through an algorithm that allows the system to classify the object as a single person or a group of people. The particular characteristic of this algorithm is the ability to track objects with complete occlusion for a long duration.
-Different implementations for security camera networks are emerging, each one with its characteristics, performance and advantages. By looking at all the implementations already said, we can say that a good system could be made by the union of all these methods, if performances wasn’t a constraint, because in most of them it is used the same base algorithm but with different securities and tracking objectives. Create an efficient system could mean a hybrid one.
+The Citric system one that resembles ~\cite{CS-MoG} by the steps that are used in the object detection. At first they make a comparison of
+computational efficiency relative to the complexity of compressing and uncompressing using JPEG and Compressed Sensing, resulting in a better
+performance of the CS  for uncompressing. After that they use frame differencing to do background subtraction and then track the objects and store
+their tracks. On the HuSIMS system they take one step further after tracking the objects, it is implemented an algorithm that is able to trigger alarms
+if something looks irregular. After doing the object tracking they are able to define regions, representing where the most common tracks pass by, and
+sinks, representing places where the objects usually appear or disappear from the scene. Having these two defined sections there is an algorithm
+capable of analyzing the image and verify, for example, if the objects of a certain type is following the expected region for its type, or if the
+object went from one sink to another. In a case where one of these predicted behaviors looks different, an alarm is triggered notifying that a problem
+could happened. \\ \\
+A problem very common with single camera systems is the object occlusions that can occurs when an object cross by other moving or static objects. A
+good method for this case is shown in ~\cite{Occlusion}. After a background subtraction using the Approximate Median Filter to detect the objects, they
+are classified accordingly to the change of their shape through the time. It is used a Kalman filter to predict the position of the objects and then 
+compare the current positions with the predicted ones through an algorithm that allows the system to classify the object as a single person or a group 
+of people. The particular characteristic of this algorithm is the ability to track objects with complete occlusion for a long duration.
+Different implementations for security camera networks are emerging, each one with its characteristics, performance and advantages. By looking at all 
+the implementations already said, we can say that a good system could be made by the union of all these methods, if performances wasn’t a constraint, 
+because in most of them it is used the same base algorithm but with different securities and tracking objectives. Create an efficient system could mean 
+a hybrid one.
+\subsection{Management Software}
+\subsection{Multi-camera Advantages}
+\subsection{Securing The Data}
 
-\section{Example Wireless Smart Camera Systems}
 
-\-- A comparison chart of software design features (computer vision, network
-	topologies, bandwidth/energy saving techniques, etc. )\\ \\
-\-- Going into more detail of possibly one of the examples shown above in
-	the taxonomy\\ \\
-\-- A comparison chart of different hardware components of their systems 
-	being used\\ \\
-\-- A discussion of both research and commercial designs\\ \\
+\section{The SWEETcam Project}
+As a proof of concept we've designed our own wireless smart camera node to help improve safety on campus. we've made use of the very popular RaspberryPi for
+its powerful processing capabilities, low cost, and its capability to run Linux. Some components we found very useful to achieve our goals including the 
+Broadcom SOC(System On a Chip), 700 MHz ARM processor, and its very own GPU for video processing. With the system running Linux, it was very easy for us to
+make use of many computer vision libraries already developed for Linux systems.\\
+We developed using the newly released Raspberry Pi camera module, which has an available API in C language and is capable of capturing 1920x1080 resolution
+color images with 30 fps rate. For the image processing, we chose the Open Source Computer Vision Library (OpenCv). Our computer vision system is developed in 
+C++ for better integration between the OpenCV and the API.
+\subsection{Energy Harvesting}
+Researchers agree that one way to combat the problems of lifetime performance with battery powered wireless sensor nodes is by making use of energy-harvesting
+capabilities~\cite{EnergyHarvesting}. We plan on achieving this with our system by using current solar technologies to recharge the camera's local battery. 
+Doing this we hope our system will require much less maintanence and remove any requirements for node placement near power grids.
 
-\section{Our Project}
-
-\subsection{Hardware}
- \-- Discuss breifly about the different components and why they were chosen \\
-
-\subsubsection{Why we chose Wifi \\}
-\subsubsection{Multimodal capabilities \\}
-
-\subsection{Software}
-\subsubsection{Image Processing}
-\- Considering the constraints of the system in terms of price and hardware, it is used techniques of background subtraction to do the object detection. When started, the program keep taking pictures and process them using Mixture of Gaussian (MoG) method by Stauffer and Grimson. With the foreground in hands we find the contours and then a bounded box is applied following the contours' limit. To remove some noise and false detection a step is added to ignore objects of small size. The object classification is the most processor consumption  processes for most of the pedestrian detection systems, because it is used training techniques to classify the objects based on a previous stored database. In our case, to reduce the process we classify the objects by looking at their dimensions, they are classified as human if the height is two times bigger than the width we classify as a person. \\
+\subsection{Image Processing}
+\- Considering the constraints of the system in terms of price and hardware, it is used techniques of background subtraction to do the object detection.
+When started, the program keep taking pictures and process them using Mixture of Gaussian (MoG) method by Stauffer and Grimson. With the foreground in
+hands we find the contours and then a bounded box is applied following the contours' limit. To remove some noise and false detection a step is added to 
+ignore objects of small size. The object classification is the most processor consumption  processes for most of the pedestrian detection systems, 
+because it is used training techniques to classify the objects based on a previous stored database. In our case, to reduce the process we classify the 
+objects by looking at their dimensions, they are classified as human if the height is two times bigger than the width we classify as a person. \\
 \begin{figure}[h!]
 \centering
 \includegraphics[scale=0.3]{imageprocessing.jpg}
 \end{figure}	
-\- This light system can generate some false alarms, but in association with the whole system, and its sensors, it can be improved for a better performance. There are other more robust object detection methods that could be used, but we would have a very low fps rate. \\
-\- We developed using the Raspberry Pi camera module, which has already an API in C language and capable of capturing 1920x1080 resolution color images with 30 fps rate. For the image processing, we chose the Open Source Computer Vision Library (OpenCv). Our computer vision system is developed in C++ for better integration between the OpenCV and the API.\\
+\- This light system can generate some false alarms, but in association with the whole system, and its sensors, it can be improved for a better
+performance. There are other more robust object detection methods that could be used, but we would have a very low fps rate. 
 
-\subsection{Future Goals}
+\subsection{Tracking Object Behavior}
+Researchers in the computer vision  field are now moving to not only detect objects and their movements, but to then infer a given behavior is being displayed.
+Looking for patterns in the way objects move will help us make better assumptions about what those objects are doing at a more generic level. Using this
+information we can do better event detection for specific occurrences and tag the video recorded accordingly. For example, video data that specifically states
+it is a recording of a person by a bike rack late in the evening is much more useful that video recorded of just a person.
 
-\section{Future Directions for Smart Wireless Camera Networks}
-\-- Discuss research that has been proposed in the area and that is just begining to be implemented or hasn't yet at all.\\
 
-\section{Lessons to take away}
+\section{Future Directions and Lessons to take away}
+\-- Discuss research that has been proposed in the area and that is just beginning to be implemented or hasn't yet at all.\\
 
 \-- just so it compiles here are the references to be used:
-~\cite{DSPcam}
 ~\cite{HuSIMS}
 ~\cite{Citric}
 ~\cite{OmniEye}
-~\cite{ScoutNode}
+~\cite{DTNSmartCamera}
 ~\cite{SensEye}
 ~\cite{WiFLIP}
+~\cite{AccLatEnergy}
+~\cite{MeshEye}
+~\cite{EnergyCons}
+~\cite{Flexi-WVSNP}
 
 %% *************************  END PAPER **********************************
 
@@ -226,134 +286,21 @@ Different implementations for security camera networks are emerging, each one wi
 %% ******************  AUTHOR BIOGRAPHIES *********************************
 
 \begin{IEEEbiographynophoto}{Kevin Abas}
-Biography text here.
+is a graduate student at Univeristy of California Santa Cruz. His research
+interests include wireless sensor networks, computer networking, and embedded
+systems. He recieved his BSc in computer engineering from University of
+California Santa Cruz. Contact him at kabas@soe.ucsc.edu.
 \end{IEEEbiographynophoto}
 
 \begin{IEEEbiographynophoto}{Caio Porto}
 Biography text here.
 \end{IEEEbiographynophoto}
 
+\begin{IEEEbiographynophoto}{Katia Obraczka}
+Biography text here.
+\end{IEEEbiographynophoto}
 
 \end{document}
 
 %%------------------------------------------------------------------------
 
-
-
-% *** MATH PACKAGES ***
-%
-%\usepackage[cmex10]{amsmath}
-% A popular package from the American Mathematical Society that provides
-% many useful and powerful commands for dealing with mathematics. If using
-% it, be sure to load this package with the cmex10 option to ensure that
-% only type 1 fonts will utilized at all point sizes. Without this option,
-% it is possible that some math symbols, particularly those within
-% footnotes, will be rendered in bitmap form which will result in a
-% document that can not be IEEE Xplore compliant!
-%
-% Also, note that the amsmath package sets \interdisplaylinepenalty to 10000
-% thus preventing page breaks from occurring within multiline equations. Use:
-%\interdisplaylinepenalty=2500
-% after loading amsmath to restore such page breaks as IEEEtran.cls normally
-% does. amsmath.sty is already installed on most LaTeX systems. The latest
-% version and documentation can be obtained at:
-% http://www.ctan.org/tex-archive/macros/latex/required/amslatex/math/
-
-
-% An example of a floating figure using the graphicx package.
-% Note that \label must occur AFTER (or within) \caption.
-% For figures, \caption should occur after the \includegraphics.
-% Note that IEEEtran v1.7 and later has special internal code that
-% is designed to preserve the operation of \label within \caption
-% even when the captionsoff option is in effect. However, because
-% of issues like this, it may be the safest practice to put all your
-% \label just after \caption rather than within \caption{}.
-%
-% Reminder: the "draftcls" or "draftclsnofoot", not "draft", class
-% option should be used if it is desired that the figures are to be
-% displayed while in draft mode.
-%
-%\begin{figure}[!t]
-%\centering
-%\includegraphics[width=2.5in]{myfigure}
-% where an .eps filename suffix will be assumed under latex, 
-% and a .pdf suffix will be assumed for pdflatex; or what has been declared
-% via \DeclareGraphicsExtensions.
-%\caption{Simulation Results.}
-%\label{fig_sim}
-%\end{figure}
-
-% Note that IEEE typically puts floats only at the top, even when this
-% results in a large percentage of a column being occupied by floats.
-
-
-% An example of a double column floating figure using two subfigures.
-% (The subfig.sty package must be loaded for this to work.)
-% The subfigure \label commands are set within each subfloat command,
-% and the \label for the overall figure must come after \caption.
-% \hfil is used as a separator to get equal spacing.
-% Watch out that the combined width of all the subfigures on a 
-% line do not exceed the text width or a line break will occur.
-%
-%\begin{figure*}[!t]
-%\centering
-%\subfloat[Case I]{\includegraphics[width=2.5in]{box}%
-%\label{fig_first_case}}
-%\hfil
-%\subfloat[Case II]{\includegraphics[width=2.5in]{box}%
-%\label{fig_second_case}}
-%\caption{Simulation results.}
-%\label{fig_sim}
-%\end{figure*}
-%
-% Note that often IEEE papers with subfigures do not employ subfigure
-% captions (using the optional argument to \subfloat[]), but instead will
-% reference/describe all of them (a), (b), etc., within the main caption.
-
-
-% An example of a floating table. Note that, for IEEE style tables, the 
-% \caption command should come BEFORE the table. Table text will default to
-% \footnotesize as IEEE normally uses this smaller font for tables.
-% The \label must come after \caption as always.
-%
-%\begin{table}[!t]
-%% increase table row spacing, adjust to taste
-%\renewcommand{\arraystretch}{1.3}
-% if using array.sty, it might be a good idea to tweak the value of
-% \extrarowheight as needed to properly center the text within the cells
-%\caption{An Example of a Table}
-%\label{table_example}
-%\centering
-%% Some packages, such as MDW tools, offer better commands for making tables
-%% than the plain LaTeX2e tabular which is used here.
-%\begin{tabular}{|c||c|}
-%\hline
-%One & Two\\
-%\hline
-%Three & Four\\
-%\hline
-%\end{tabular}
-%\end{table}
-
-
-% Note that IEEE does not put floats in the very first column - or typically
-% anywhere on the first page for that matter. Also, in-text middle ("here")
-% positioning is not used. Most IEEE journals use top floats exclusively.
-% Note that, LaTeX2e, unlike IEEE journals, places footnotes above bottom
-% floats. This can be corrected via the \fnbelowfloat command of the
-% stfloats package.
-
-
-% if have a single appendix:
-%\appendix[Proof of the Zonklar Equations]
-% or
-%\appendix  % for no appendix heading
-% do not use \section anymore after \appendix, only \section*
-% is possibly needed
-
-% use appendices with more than one appendix
-% then use \section to start each appendix
-% you must declare a \section before using any
-% \subsection or using \label (\appendices by itself
-% starts a section numbered zero.)
-%
