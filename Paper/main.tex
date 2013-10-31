@@ -55,6 +55,10 @@
 
 % ** CAPTION PACKAGE **
 \usepackage{caption}
+
+% ** UNIT PACKAGE  **
+\usepackage{siunitx}
+\sisetup{math-micro=\text{µ},text-micro=µ}
 %%----------------------------------------------------------------------
 
 \begin{document}
@@ -62,7 +66,7 @@
 
 %% ***********************  THE TITLE **********************************
 
-\title{Efficient Smart Camera Networks For Public Safety}
+\title{Smart Camera Networks For Public Safety}
 
 
 %% ***********************  AUTHORS ************************************
@@ -145,7 +149,7 @@ options such as 802.15.4, can also have a large effect on how much power the sys
 
 \subsection{Quality of data recorded}
 Recording live high-resolution data all the time with no inference will soon become a thing of the past. Every second of video recorded counts when the 
-surveillance system scales to much larger deployments such as in smart cities~\cite{HuSIMS}. Doing local proccessing and decision making first can have 
+surveillance system scales to much larger deployments such as in smart cities~\cite{HuSIMS}. Doing local processing and decision making first can have 
 a huge change on the amount of data that actually needs to be transmitted and archived. Whether it is event detection or object identification, preventing 
 false alarms by checking the data locally can be very helpful. The research area of computer vision has grown at a very fast rate and only in the past few years
 are we seeing wireless surveillance systems adopt these sophisticated algorithms.
@@ -156,24 +160,31 @@ are we seeing wireless surveillance systems adopt these sophisticated algorithms
 \begin{center}
 \captionof{table}{A taxonomy of current research surveillance systems that use wireless smart cameras.}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{| l | p{3cm} | l | p{3cm} | p{2cm} | p{3cm} | p{3cm} | l| p{3cm} |}
+\begin{tabular}{| l | p{4cm} | p{2cm}  | p{3cm} | p{2cm} | p{3cm} | p{3cm} | l| p{3cm} |}
     \hline
-    System & Energy Efficiency & Multimodal & Bandwidth Efficiency & Wireless & Video Analysis & System Software & Multicamera & Security \\ \hline
+    System & Energy Efficiency & Multimodal & Bandwidth Efficiency & Wireless & Video Analysis & System Software & Multicamera Overlap & Security \\ \hline
     
-    Citric & sleeping nodes, only wake on presence of objects & Audio & In-network image processing, small image size & 802.15.4 and Bluetooth
-     & . & Embedded Linux & Yes & Pre-processing of data at node \\ \hline
+    Citric & sleeping nodes, only wake on presence of objects & Audio & In-network image processing, small image size & 802.15.4
+     	& . & Embedded Linux & Yes & Pre-processing of data at node, wireless protocols \\ \hline
     
-    HuSIMS & . & . & .  & . & . & . & . & .  \\ \hline
+    HuSIMS & small processing power cameras, power efficient sensors & Smoke detectors, motion, light, humidity, Temperature 
+    & In-network image processing, Sink nodes, seperate low bandwidth sensor networks  
+    & WiMAX 4G & . & Large Management Software using semantic processing & No & given by 4g and secured at control center  \\ \hline
     
-    OmniEye & . & . & .  & WiPort 802.11b/g & . & . & . & .  \\ \hline
+    OmniEye & none described for cameras, seperate energy efficient sensor network & temperature light, sound sensors 
+    	& In-network image processing, data annotation 
+    	& 	WiPort 802.11b/g TSAM MAC & . & \textit{u}Linux & Yes & Data encrypted using PICO, SSL communication  \\ \hline
     
-    Wi-FLIP & . & . & .  & . & . & . & . & .  \\ \hline
+    Wi-FLIP & analog circuitry, low-level image processing, smart image processor & Light & Small images, Low framerate  
+    	& 802.15.4 & . & TinyOS & No & none described  \\ \hline
     
-    SensEye & . & . & .  & . & . & . & . & .  \\ \hline
+    SensEye & multi-tier cameras, cameras sleep because of redundant coverage  & none & low-latency wakeups and detection  
+    	& 802.11,  900MHz  & . & Embedded Linux & Yes & wireless protocols  \\ \hline
     
-    DTN-Citric & . & . & .  & . & . & . & . & .  \\ \hline
+    DTN-Citric & sleeping nodes, only wake on presence of objects & Audio & Distributed In-network processing, In-network storage  & 802.15.4 & . 
+    	& Embedded Linux  & Yes & Encrypted network traffic  \\ \hline
     
-    Flexi-WVSNP & . & . & .  & . & . & . & . & .  \\ \hline
+    Flexi-WVSNP & . & . & .  & 802.11, 802.15.4 & . & . & . & .  \\ \hline
     
     MeshEye & . & . & .  & . & . & . & . & .  \\ \hline
 	
@@ -182,9 +193,33 @@ are we seeing wireless surveillance systems adopt these sophisticated algorithms
 ]
 
 \subsection{Energy Efficiency}
+All of the systems listed in Table 1 make an effort to reduce power consumption their system in some way. Getting the system to go into a low powered 
+sleep state during idle periods is a very effective solution ~\cite{AccLatEnergy} ~\cite{Citric}. Non-image sensors are already extremely energy efficient, 
+there for its often useful to use them to determine when the system should turn on the power hungry camera nodes. The image sensor itself can be design with
+analog circuitry and be more compact which will also reduce energy consumption~\cite{WiFLIP}. However the lower power consumption comes at a cost, and with
+the Wi-FLIP camera platform its frame rate.In surveillance systems with redundant coverage, which we discuss later, camera nodes can also tell their neighbor
+nodes to turn on or off based on the tracked object's trajectory in the scene~\cite{SensEye}.
+
 \subsection{Sensor Fusion}
+Using multiple sensors can also allow you to create more specific alarms cases that tell you more than just that an event occurred. The Human Situation
+Monitoring System does this on a very large scale by using numerous sensors is dense city deployments ~\cite{HuSIMS}. Sensors may be on the wireless camera
+node on may be on its own sensor network as in the OmniEye system ~\cite{OmniEye}. The extra sensors don't necessarily need to be non-image sensor but 
+could in fact be low powered camera sensors for simpler sensing tasks that then trigger larger more powerful cameras to be activated~\cite{SensEye}.
+
 \subsection{Network Load and Scalability}
+With high resolution streams coming from each of the camera nodes in these surveillance systems, it becomes impossible to have 
+that much video data be transmitted at once. Many systems take advantage of in-network processing before sending the data out to the internet or do processing on
+the wireless camera node itself ~\cite{HuSIMS}~\cite{OmniEye}. By annotating important data that displays and event of interest, system managers can request smaller sets 
+of data based on meta data~\cite{OmniEye}. Making use of sink nodes in densely populated sensor networks is also a very popular technique to reduce the 
+amount of rich video data needs to be sent over the internet~\cite{HuSIMS}.
+
 \subsection{Wireless Communication}
+If the surveillance system is densely populated and would cause to great a load on nearby networks, options such at WiMAX may be used ~\cite{HuSIMS}. 
+Researchers working on the OmniEye project have even design their own MAC layer protocols to scale better in larger topologies ~\cite{OmniEye}. In surveillance 
+situations where wireless communication is intermittent , delay tolerant networking techniques may be used ~\cite{DTNSmartCamera}. In DTN based systems, data
+may be allowed to accumulate locally before being transmitted securely over the internet.
+
+
 \subsection{Computer Vision in Surveillance}
 By the computer vision side, we can see that the background subtraction is the most used method to detect moving objects with single cameras in a 
 real-time world. There are different algorithms to implement it, with different computer efficiencies and accuracies, what can make each one more
@@ -213,10 +248,23 @@ Different implementations for security camera networks are emerging, each one wi
 the implementations already said, we can say that a good system could be made by the union of all these methods, if performances wasn’t a constraint, 
 because in most of them it is used the same base algorithm but with different securities and tracking objectives. Create an efficient system could mean 
 a hybrid one.
-\subsection{Management Software}
-\subsection{Multi-camera Advantages}
-\subsection{Securing The Data}
 
+\subsection{Management Software}
+At the wireless camera  node level there are two clear options when it comes to operations systems, one either chooses an smaller architecture for 
+simplicity or one that can do on node processing and run more complicated analysis tools.
+It is well known that monitoring many feeds at once is very hard to automated and just does not scale well. Therefor some researchers are using semantic
+interpretation to abstract the raw data into more generic anomalies ~\cite{HuSIMS}. 
+
+\subsection{Multi-camera Advantages}
+The Citric platform is not the only system that when deployed makes use of overlapping video data. Doing this allows the system to determine which angle 
+to best view the object or in what direction is the object heading.
+
+\subsection{Securing The Data}
+Privacy is a major concern is the design process of today's wireless sensor networks. Systems need to secure the private data that has been processed, the
+transmission link, and to location at which the data is stored. Many systems choose to rely on the standard methods provided by the technologies they use
+~\cite{HuSIMS}. While others make use of sophisticated encryption tools to secure its data and more commonly known secure communication tools such as Secure
+Socket Layer(SSL) ~\cite{OmniEye}. Wireless Surveillance systems must protect any data that could leak private information about objects and environments they track to those
+sniffing the communication medium. 
 
 \section{The SWEETcam Project}
 As a proof of concept we've designed our own wireless smart camera node to help improve safety on campus. we've made use of the very popular RaspberryPi for
@@ -226,6 +274,7 @@ make use of many computer vision libraries already developed for Linux systems.\
 We developed using the newly released Raspberry Pi camera module, which has an available API in C language and is capable of capturing 1920x1080 resolution
 color images with 30 fps rate. For the image processing, we chose the Open Source Computer Vision Library (OpenCv). Our computer vision system is developed in 
 C++ for better integration between the OpenCV and the API.
+
 \subsection{Energy Harvesting}
 Researchers agree that one way to combat the problems of lifetime performance with battery powered wireless sensor nodes is by making use of energy-harvesting
 capabilities~\cite{EnergyHarvesting}. We plan on achieving this with our system by using current solar technologies to recharge the camera's local battery. 
@@ -254,6 +303,7 @@ it is a recording of a person by a bike rack late in the evening is much more us
 
 \section{Future Directions and Lessons to take away}
 \-- Discuss research that has been proposed in the area and that is just beginning to be implemented or hasn't yet at all.\\
+\-- say that embedded systems are becoming more numerous and many of these techniques can be applied to those systems.
 
 \-- just so it compiles here are the references to be used:
 ~\cite{HuSIMS}
