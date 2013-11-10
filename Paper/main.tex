@@ -1,7 +1,7 @@
 %\title{SWEETcam submission for IEEE Computer}
 
 %%
-%% Draft version 2.0
+%% Draft version 3.0
 %%
 %% Authors:
 %% Kevin Abas
@@ -56,6 +56,8 @@
 % ** CAPTION PACKAGE **
 \usepackage{caption}
 
+\usepackage{wrapfig}
+
 % ** UNIT PACKAGE  **
 \usepackage{siunitx}
 \sisetup{math-micro=\text{µ},text-micro=µ}
@@ -95,7 +97,7 @@ a classification is created to better help us understand what the future holds i
 %% ********************** IEEE KEYWORDS ********************************
 
 \begin{IEEEkeywords}
-Wireless sensor networks, Smart camera networks, Computer vision, Sensor networks, Human safety
+Wireless sensor networks, Smart camera networks, Computer vision, Image processing software, Human safety
 \end{IEEEkeywords}}
 
 
@@ -110,18 +112,28 @@ Wireless sensor networks, Smart camera networks, Computer vision, Sensor network
 
 \section{Introduction}
 
-\IEEEPARstart{T}{his} paper discusses an overview of how Smart Camera Networks are changing surveillance systems of today.\\
-\-- Goals of the paper, What problems this papers solves, background, motivation \\
-\-- discuss Wireless sensor networks in general and how data rich video sensor are\\
-\-- Some things current Smart Camera networks assist with when it comes to 
-surveillance and crime detection nodes. \\
+\IEEEPARstart{W}{ireless} sensor networks are ushering in a new era of technologies that allow us to better interpret what is happening around us in urban and non-urban
+environments. Sensor data gives us better analysis about environmental trends, and could be used to effectively protect us from danger or monitor systems to make sure they
+remain in working order. With the help of these embedded sensing networks the dangers and problems of today will soon become a thing of the past thanks to research efforts.\\
+
+Video sensing networks provide the richest of data sets in comparison to other sensing technologies and therefor the number of applications for VSNs are increasing every day.
+With the right analysis tools a lot of information can be extracted from video data and researchers have come very far in designing camera platforms for this task. How efficient
+these systems are is very important, especially when the number of video sensors grow large as is required in surveillance applications.\\
 
 %%Requirements for today's wireless Smart Camera Networks
 
+
+\begin{figure*}
+\centering
+\includegraphics[scale=0.3]{CameraDepolymentsFigure.png}
+\caption{\textbf{(A)} Shows a multi-tier smart camera network in which more efficient low cost camera do object detection and wake up higher resolution cameras to run computer
+vision algorithms. \textbf{(B)} Is an example of sensor fusion where non-image sensing networks can use its data with the video data to make a better evaluation of the situation.
+\textbf{(C)} An object being detected by redundant coverage can be given a position in three dimensional space for computer vision algorithms to use.}
+\end{figure*}
+
 \section{Wireless Smart Camera Surveillance}
 Researchers and Commercial companies are designing wireless smart camera networks in surveillance applications to prevent crimes, detect environmental emergencies,
-monitor behavior of the elderly, and track vehicular traffic in public spaces. Many camera platforms have been designed to meet strict hardware requirements
-~\cite{Flexi-WVSNP} for wireless deployment in surveillance systems. However, different requirements must be stated when looking at the application specific 
+monitor behavior of the elderly, and track vehicular traffic in public spaces. Many camera platforms have been designed to meet strict hardware requirements~\cite{Flexi-WVSNP}~\cite{Citric}~\cite{WiFLIP} for wireless deployment in surveillance systems. However, different requirements must be stated when looking at the application specific 
 scenario of surveillance in public spaces. To understand how these state of the art systems are improving on designs of the past, one must define what makes these
 surveillance systems "smart". These smart camera network systems have common goals when it comes creating more efficient surveillance applications. First, the issue 
 of network resource utilization is an issue all systems need to consider if those surveillance systems are to be scalable in crowded wireless deployment 
@@ -134,13 +146,14 @@ Video data is rich with useful information that other sensor sources can’t pro
 on.Nodes competing for network connectivity while maintaining quality on live video feed can soon become a problem as the network grows or if other 
 nodes not in the system share the connection. One way to combat this is by assuring the data recorded is useful and actually recording video data that 
 can be used to do detection of events by doing in network processing ~\cite{Citric}.\\
+
 Taking advantage of multiple cameras is a very useful method to determine not only which node has the best view of the object, but also if the overlapping
 video footage can be combined to provide more useful data. Extensive research has been done on both bandwidth and energy efficiencies of wireless
 smart camera networks that make use of overlapping footage ~\cite{AccLatEnergy}.
 
 
 \subsection{Lowering Power Consumption}
-When discussing wireless sensor networks , power consumption is always brought up as a concern in deployment and scalability. Smart camera networks are 
+ When discussing wireless sensor networks , power consumption is always brought up as a concern in deployment and scalability. Smart camera networks are 
 no different, and many researchers have discussed methods to design nodes that consume less power. One such method would be to limit the amount of time 
 a camera needs to actually be powered on, and rely on more low power sensors to trigger a wake up. Using this sensor fusing technique allows the system
 to operate a different power consumption states . Such states must be carefully looked at and many researchers 
@@ -148,49 +161,102 @@ consider every level of operation of each camera node ~\cite{AccLatEnergy}~\cite
 options such as 802.15.4, can also have a large effect on how much power the system uses.
 
 \subsection{Quality of data recorded}
+Vision sensor data requires much higher bandwidth due to its two-dimensional nature of its pixel arrays, and such data can not be fully analyzed by humans~\cite{MeshEye}.
 Recording live high-resolution data all the time with no inference will soon become a thing of the past. Every second of video recorded counts when the 
 surveillance system scales to much larger deployments such as in smart cities~\cite{HuSIMS}. Doing local processing and decision making first can have 
 a huge change on the amount of data that actually needs to be transmitted and archived. Whether it is event detection or object identification, preventing 
 false alarms by checking the data locally can be very helpful. The research area of computer vision has grown at a very fast rate and only in the past few years
 are we seeing wireless surveillance systems adopt these sophisticated algorithms.
 
+\section{Smart Camera Advantages}
 
-\twocolumn[
-\section{Classifying Smart Wireless Surveillance Systems}
-\begin{center}
-\captionof{table}{A taxonomy of current research surveillance systems that use wireless smart cameras.}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{| l | p{4cm} | p{2cm}  | p{3cm} | p{2cm} | p{3cm} | p{3cm} | l| p{3cm} |}
+Researchers are using common design strategies to overcome chalanges when using smart camera networks for surveillance. From deployment strategies to choosing efficient
+hardware and software, researchers are making wireless surveillance systems smarter. Before presenting our taxonomy of current research systems, we will define
+some terminology and present some generic concepts.
+
+
+\subsection{Efficiency in Smart Camera Networks}
+Measuring performance in a wireless smart camera networks can be broken up into 2 specific categories. One having to do when environmental impact of these systems its important
+to measure how much energy these monitoring systems use on a daily basis. Many strategies from other wireless sensor networks can be used in this scenario including
+making use of nodes that sleep during idle times. Another technique is to use hardware that uses less power to decide if it needs to wake the more power hungry video sensors.
+
+
+A few solutions to both performance concerns show up in many systems design by researchers today. As shown in Figure 1, smaller more energy and bandwidth efficient sensor networks
+could provide smaller meta data such and audio and temperature data to complement what the video sensor captures. When Computers analyze both data sets and
+make an inference about them its called sensor fusion or multi-modal sensor networks. Designing the vision sensor network to take advantage of two classes of cameras, one 
+efficient and the other more powerful and higher resolution, also helps with performance. Deciding on a smart deployment strategy can also be very beneficial,
+especially in scenarios with overlapping coverage. Getting multiple views of an object get give more data and much more accuracies.
+
+\subsection{Implementation strategies}
+An important decision made when designing smart camera platforms is what communication medium will be chosen. Many systems choose Zigbee(802.15.4) as their wireless 
+communication link for its low power features, whereas if your system has a higher bandwidth requirement researchers choose the more ubiquitous WiFi(802.11). The camera platforms
+and monitoring systems software architecture must also be analyzed when classifying effectiveness in the application of surveillance. Classifying the systems security mechanism 
+to both secure the data and also its transmission channels.  
+
+\subsection{Common Computer Vision Techniques}
+
+\subsubsection{Object Detection and Recognition}
+One the objectives of the computer vision and the image processing, is the ability of identify and classify instances of real-world objects in images or videos.
+It has been developed different algorithms with different approaches to this same problem. There are 2 main used techniques for object detection, one based on 
+training the objects to be detected and recognized, while the other is based on detecting moving objects using background subtraction and recognize 
+them through the shape.
+
+\subsubsection{Behavior Tracking}
+An area is emerging in the surveillance systems, algorithms capable of tracking the human behaviour to better categorize the data being recorded. The use of 
+this kind of system can automate the process of analysing the human movements and, from there, identify abnormal behaviors and hostile intent  that can be 
+translated as alerts for the system supervisors.
+
+\subsubsection{Occlusion Handle}
+Surveillance cameras are usually developed to work independent of the ambient. Therefore, scenarios that have many obstacles that can occlude the vision of 
+the camera over the detected object can represent a problem. In order to increase the tracking capability of the systems, some of them have an additional 
+component responsible for the occlusion handle, in other words, the system is able to track the object even if it cross by another moving or static object.
+
+\begin{table*}[t]
+  \centering
+
+  \begin{tabular}{| p{1.1cm} | p{2cm} | p{1.2cm}  | p{2.1cm} | p{1cm} | p{2.5cm} | p{1.5cm} | p{1.3cm}  | p{2cm} |}
     \hline
-    System & Energy Efficiency & Multimodal & Bandwidth Efficiency & Wireless & Video Analysis & System Software & Multicamera Overlap & Security \\ \hline
+    System & Energy Efficiency & Multimodal & Bandwidth Efficiency & Wireless & Video Analysis & System Software & Multicamera Overlap & Security \\   \hline
     
     Citric & sleeping nodes, only wake on presence of objects & Audio & In-network image processing, small image size & 802.15.4
-     	& . & Embedded Linux & Yes & Pre-processing of data at node, wireless protocols \\ \hline
+     	& \textbf{Compression:} Compressed Sensing, \textbf{Object Detection:} Frame Differencing Background Subtraction, \textbf{OcclusionHandle:} Multiple Cameras For One Object 
+        & Embedded Linux & Yes & Pre-processing of data at node, wireless protocols \\ \hline
     
     HuSIMS & small processing power cameras, power efficient sensors & Smoke detectors, motion, light, humidity, Temperature 
-    & In-network image processing, Sink nodes, seperate low bandwidth sensor networks  
-    & WiMAX 4G & . & Large Management Software using semantic processing & No & given by 4g and secured at control center  \\ \hline
+    	& In-network image processing, Sink nodes, separate low bandwidth sensor networks  
+    	& WiMAX 4G & \textbf{Alerts:} Object Abnormal Behavior & Large Management Software using semantic processing 
+    	& No & given by 4g and secured at control center  \\ \hline
     
     OmniEye & none described for cameras, seperate energy efficient sensor network & temperature light, sound sensors 
     	& In-network image processing, data annotation 
-    	& 	WiPort 802.11b/g TSAM MAC & . & \textit{u}Linux & Yes & Data encrypted using PICO, SSL communication  \\ \hline
+    	& 	WiPort 802.11b/g TSAM MAC & \textbf{Compression:} JPEG 70\% ,   \textbf{Object Detection:} Adaptive Background Subtraction 
+        & \textit{u}Linux & Yes & Data encrypted using PICO, SSL communication  \\ \hline
     
     Wi-FLIP & analog circuitry, low-level image processing, smart image processor & Light & Small images, Low framerate  
-    	& 802.15.4 & . & TinyOS & No & none described  \\ \hline
+    	& 802.15.4 & \textbf{Object Detection:} Difference of Gaussians  & TinyOS & No & none described  \\ \hline
     
     SensEye & multi-tier cameras, cameras sleep because of redundant coverage  & none & low-latency wakeups and detection  
-    	& 802.11,  900MHz  & . & Embedded Linux & Yes & wireless protocols  \\ \hline
+    	& 802.11,  900MHz  & \textbf{Object Detection:} Frame Differencing Background Subtraction, \textbf{OcclusionHandle:} Multiple Cameras For One Object  
+        & Embedded Linux & Yes & wireless protocols  \\ \hline
     
-    DTN-Citric & sleeping nodes, only wake on presence of objects & Audio & Distributed In-network processing, In-network storage  & 802.15.4 & . 
-    	& Embedded Linux  & Yes & Encrypted network traffic  \\ \hline
+    DTN-Citric & sleeping nodes, only wake on presence of objects & Audio & Distributed In-network processing, In-network storage  & 802.15.4 
+    	& \textbf{Object Detection:} Not Specified Background Subtraction & Embedded Linux  & Yes & Encrypted network traffic  \\ \hline
     
-    Flexi-WVSNP & . & . & .  & 802.11, 802.15.4 & . & . & . & .  \\ \hline
+    Flexi-WVSNP & switching between radios, efficient SoC processor & Zigbee sensor network  & switching between radio's to control channel utilization  
+    	& 802.11, 802.15.4 & None Described & Custom SoC Firmware & No & None described  \\ \hline
     
-    MeshEye & . & . & .  & . & . & . & . & .  \\ \hline
-	
-\end{tabular}}
-\end{center}
-]
+    MeshEye & Low powered transievers, designed for battery power & none & Distributed in-network processing   & 802.15.4 
+    	& \textbf{Object Detection:} Frame Differencing Background Subtraction & Custom Arm7 microcontroller firmware & No & None Described  \\ \hline
+
+
+  \end{tabular}
+  \caption{}{A taxonomy of current research surveillance systems that use wireless smart cameras}
+  \label{tab:1}
+\end{table*}
+
+
+
+\section{Classifying Smart Wireless Surveillance Systems}
 
 \subsection{Energy Efficiency}
 All of the systems listed in Table 1 make an effort to reduce power consumption their system in some way. Getting the system to go into a low powered 
@@ -198,7 +264,8 @@ sleep state during idle periods is a very effective solution ~\cite{AccLatEnergy
 there for its often useful to use them to determine when the system should turn on the power hungry camera nodes. The image sensor itself can be design with
 analog circuitry and be more compact which will also reduce energy consumption~\cite{WiFLIP}. However the lower power consumption comes at a cost, and with
 the Wi-FLIP camera platform its frame rate.In surveillance systems with redundant coverage, which we discuss later, camera nodes can also tell their neighbor
-nodes to turn on or off based on the tracked object's trajectory in the scene~\cite{SensEye}.
+nodes to turn on or off based on the tracked object's trajectory in the scene~\cite{SensEye}.Efficient SoC processor are now more advance and can handle
+managing a smart camera node while being energy efficient~\cite{Flexi-WVSNP}.
 
 \subsection{Sensor Fusion}
 Using multiple sensors can also allow you to create more specific alarms cases that tell you more than just that an event occurred. The Human Situation
@@ -211,43 +278,61 @@ With high resolution streams coming from each of the camera nodes in these surve
 that much video data be transmitted at once. Many systems take advantage of in-network processing before sending the data out to the internet or do processing on
 the wireless camera node itself ~\cite{HuSIMS}~\cite{OmniEye}. By annotating important data that displays and event of interest, system managers can request smaller sets 
 of data based on meta data~\cite{OmniEye}. Making use of sink nodes in densely populated sensor networks is also a very popular technique to reduce the 
-amount of rich video data needs to be sent over the internet~\cite{HuSIMS}.
+amount of rich video data needs to be sent over the internet~\cite{HuSIMS}. Another important factor to consider when discussing network load is channel utilization,
+minimizing time spent on one wireless communication by sending data on another also helps in network load efficiences~\cite{Flexi-WVSNP}.
+
 
 \subsection{Wireless Communication}
 If the surveillance system is densely populated and would cause to great a load on nearby networks, options such at WiMAX may be used ~\cite{HuSIMS}. 
-Researchers working on the OmniEye project have even design their own MAC layer protocols to scale better in larger topologies ~\cite{OmniEye}. In surveillance 
+Researchers working on the OmniEye project and MeshEye project have even design their own MAC layer protocols to scale better in larger topologies ~\cite{MeshEye}~\cite{OmniEye}. In surveillance 
 situations where wireless communication is intermittent , delay tolerant networking techniques may be used ~\cite{DTNSmartCamera}. In DTN based systems, data
-may be allowed to accumulate locally before being transmitted securely over the internet.
+may be allowed to accumulate locally before being transmitted securely over the internet. Systems may have a hybrid communication system, where they take advantage of
+two seperate radios~\cite{Flexi-WVSNP}. Doing this could reduce the amount of traffic produced by the node to any of the 2 radio communication links.
 
 
 \subsection{Computer Vision in Surveillance}
-By the computer vision side, we can see that the background subtraction is the most used method to detect moving objects with single cameras in a 
-real-time world. There are different algorithms to implement it, with different computer efficiencies and accuracies, what can make each one more
-suitable for each system. Methods like Mixture of Gaussians (MoG) or simple frame differencing are largely used, but the problem with these methods is
-their computational efficiency. In ~\cite{CS-MoG} it is shown the possibility of having a low power and computationally efficient (up to 5 times
-faster) system based on background subtraction using a known method: Compressed Sensing. Using CS is possible to compress the image, in other words,
-reduce the amount of data to be processed, while retaining much of the original image. The compressed image can be submitted to a MoG algorithm to
-detect the objects on the scene with a lower solution complexity. The results shown a very efficient system, that they called CS-MoG, with an accuracy
-very close to a system that uses MoG only.
+As already said, it would be very helpful if all the captured images could be analysed in the node before being uploaded and saved. Most of the systems that use in node
+data process are using background subtraction method to detect moving objects with single cameras in real-time. There are different algorithms to implement it, with 
+different computer efficiencies and accuracies, what can make each one more suitable for each system.
 
-The Citric system one that resembles ~\cite{CS-MoG} by the steps that are used in the object detection. At first they make a comparison of
-computational efficiency relative to the complexity of compressing and uncompressing using JPEG and Compressed Sensing, resulting in a better
-performance of the CS  for uncompressing. After that they use frame differencing to do background subtraction and then track the objects and store
-their tracks. On the HuSIMS system they take one step further after tracking the objects, it is implemented an algorithm that is able to trigger alarms
-if something looks irregular. After doing the object tracking they are able to define regions, representing where the most common tracks pass by, and
-sinks, representing places where the objects usually appear or disappear from the scene. Having these two defined sections there is an algorithm
-capable of analyzing the image and verify, for example, if the objects of a certain type is following the expected region for its type, or if the
-object went from one sink to another. In a case where one of these predicted behaviors looks different, an alarm is triggered notifying that a problem
-could happened. \\ \\
-A problem very common with single camera systems is the object occlusions that can occurs when an object cross by other moving or static objects. A
-good method for this case is shown in ~\cite{Occlusion}. After a background subtraction using the Approximate Median Filter to detect the objects, they
-are classified accordingly to the change of their shape through the time. It is used a Kalman filter to predict the position of the objects and then 
-compare the current positions with the predicted ones through an algorithm that allows the system to classify the object as a single person or a group 
-of people. The particular characteristic of this algorithm is the ability to track objects with complete occlusion for a long duration.
-Different implementations for security camera networks are emerging, each one with its characteristics, performance and advantages. By looking at all 
-the implementations already said, we can say that a good system could be made by the union of all these methods, if performances wasn’t a constraint, 
-because in most of them it is used the same base algorithm but with different securities and tracking objectives. Create an efficient system could mean 
-a hybrid one.
+\subsubsection{Object Detection and Recognition}
+Methods like Mixture of Gaussians (MoG) ~\cite{CS-MoG} or frame differencing, sometimes with adaptive background, are largely used ~\cite{OmniEye}~\cite{SensEye}~\cite{MeshEye}, but 
+the computational efficiency still a problem. In Johnsen and Tews ~\cite{Occlusion}. it is shown the possibility of having a low power and computationally efficient 
+(up to 5 times faster) system based on  background subtraction using a very known method: Compressed Sensing. Using CS is possible to compress the image, in other words, reduce 
+the amount of data to be processed, while retaining much of the original image. The compressed image can be submitted to a MoG algorithm to detect the objects on the scene with 
+a lower solution complexity. The results shown a very efficient system, that they called CS-MoG, with an accuracy very close to a system that uses MoG only.
+
+The CITRIC ~\cite{Citric} system resembles Johnsen and Tews ~\cite{Occlusion}. by the steps that are used in the object detection. At first they use CS to compress the image, 
+then they use frame differencing to do background subtraction and apply Canny edge detection algorithm to detect the objects. On their most recent work, they describe a new 
+method called Distributed Object Recognition, where they try to boost the recognition accuracy using multiple cameras to recognize the same object. Motivated by the CS and its
+applications in sensor networks, they show that the visual histogram of the features that describe an object in a single image is spare, and most of its coefficients are positive
+and approximately zero. Furthermore, since SIFT-type features (e.g., SIFT [Lowe 1999], SURF [Bay et al. 2008], or CHoG [Chandrasekhar et al. 2009]) are robust to some degree of 
+camera rotation and translation, it is possible to relate the non zero coefficients of the features from one camera with the others from other cameras. This phenomenon is called 
+joint sparsity (JS).
+
+\subsubsection{Behavior Tracking}
+On the HuSIMS system ~\cite{HuSIMS} they take one step further after tracking the objects, it is implemented an algorithm that is able to trigger alarms if something looks
+irregular. Afterdoing the object tracking they are able to define regions, representing where the most common tracks pass by, and sinks, representing places where the objects
+usually appear or disappear from the scene. Having these 2 defined sections there is an algorithm capable of analysing the image and verify, for example, if the objects of a
+certain type is following the expected region for its type, or if the object went from one sink to another. In a case where one of these predicted behaviours looks different,
+an alarm is triggered notifying that a problem could happened.
+
+\subsubsection{Occlusion Handle}
+A problem very common with single camera systems is the object occlusions. A good method for this case is presented in [8 check]. After a background subtraction they are 
+classified accordingly to the change of their shape through the time. It is used a Kalman filter to predict the position of the objects and then compare the current position
+with the predicted one through an algorithm that allows the system to even distinguish between a single person or a group of people as seen on Figure 2 The particular 
+characteristic of this algorithm is the ability to track objects with complete occlusion for a long duration.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.5]{Occlusion.png}
+\caption{Occlusion handle algorithm as described by Swantje Johnsen and Ashley Tews ~\cite{Occlusion}.}
+\end{figure}	
+
+Others occlusion handle methods can be used. On HuSIMS  ~\cite{HuSIMS} , a less accurate, but also less complex, detects the edges along which a target disappears and then fits
+lines. Another example is CITRIC ~\cite{Citric}, where they take the advantage of multiple cameras and the distributed recognition to keep the track of an object even after 
+the object become occluded for one of the cameras.
+
 
 \subsection{Management Software}
 At the wireless camera  node level there are two clear options when it comes to operations systems, one either chooses an smaller architecture for 
@@ -255,9 +340,10 @@ simplicity or one that can do on node processing and run more complicated analys
 It is well known that monitoring many feeds at once is very hard to automated and just does not scale well. Therefor some researchers are using semantic
 interpretation to abstract the raw data into more generic anomalies ~\cite{HuSIMS}. 
 
-\subsection{Multi-camera Advantages}
-The Citric platform is not the only system that when deployed makes use of overlapping video data. Doing this allows the system to determine which angle 
-to best view the object or in what direction is the object heading.
+\subsection{Overlapping Multi-camera Advantages}
+The Citric project designed their camera node to incorporate redundant coverage into their video analysis, and can track and object in 3 dimensional space if the object
+is found in the view of two cameras~\cite{OmniEye}~\cite{DTNSmartCamera}.The Citric platform is not the only system that when deployed makes use of overlapping video data. 
+Not only are the cameras over lapping in the SensEye system, but their two levels of complexity because of their multi-tiered camera setup~\cite{SensEye}.
 
 \subsection{Securing The Data}
 Privacy is a major concern is the design process of today's wireless sensor networks. Systems need to secure the private data that has been processed, the
@@ -274,6 +360,10 @@ make use of many computer vision libraries already developed for Linux systems.\
 We developed using the newly released Raspberry Pi camera module, which has an available API in C language and is capable of capturing 1920x1080 resolution
 color images with 30 fps rate. For the image processing, we chose the Open Source Computer Vision Library (OpenCv). Our computer vision system is developed in 
 C++ for better integration between the OpenCV and the API.
+
+\subsection{Project overview}
+
+\-- show both software and hardware diagram
 
 \subsection{Energy Harvesting}
 Researchers agree that one way to combat the problems of lifetime performance with battery powered wireless sensor nodes is by making use of energy-harvesting
@@ -302,20 +392,12 @@ it is a recording of a person by a bike rack late in the evening is much more us
 
 
 \section{Future Directions and Lessons to take away}
-\-- Discuss research that has been proposed in the area and that is just beginning to be implemented or hasn't yet at all.\\
-\-- say that embedded systems are becoming more numerous and many of these techniques can be applied to those systems.
+Many Embedded systems can apply the same classification we present here to their systems as well. Such systems become more numerous every day and therefor their
+footprint on both the amount of energy they consume and the load they add to today's Internet is important. For such architectures to remain scalable,
+future monitoring system will need to be more self reliant which includes having decision making and data processing be done from within the system itself.
+Much research still remains to achieve this goal in smart camera networks for surveillance and other sensor networks and systems.
 
-\-- just so it compiles here are the references to be used:
-~\cite{HuSIMS}
-~\cite{Citric}
-~\cite{OmniEye}
-~\cite{DTNSmartCamera}
-~\cite{SensEye}
-~\cite{WiFLIP}
-~\cite{AccLatEnergy}
-~\cite{MeshEye}
-~\cite{EnergyCons}
-~\cite{Flexi-WVSNP}
+
 
 %% *************************  END PAPER **********************************
 
