@@ -131,6 +131,7 @@ typedef struct
 {
    FILE *file_handle;                   /// File handle to write buffer data to.
    RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
+   Mat image;								/// Main image captured
    int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
 } PORT_USERDATA;
 
@@ -483,20 +484,13 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 
       vcos_assert(pData->file_handle);
 
-      if (buffer->length)
-      {
-         mmal_buffer_header_mem_lock(buffer);
 
-         bytes_written = fwrite(buffer->data, 1, buffer->length, pData->file_handle);
+         mmal_buffer_header_mem_lock(buffer);
+		 memcpy(pdata->image.data, buffer->data, pdata->pstate->width * pdata->pstate->height);
+         //bytes_written = fwrite(buffer->data, 1, buffer->length, pData->file_handle);
 
          mmal_buffer_header_mem_unlock(buffer);
-      }
 
-      if (bytes_written != buffer->length)
-      {
-         vcos_log_error("Failed to write buffer data (%d from %d)- aborting", bytes_written, buffer->length);
-         pData->abort = 1;
-      }
    }
    else
    {
@@ -1044,6 +1038,7 @@ int main(int argc, const char **argv)
 
          // Set up our userdata - this is passed though to the callback where we need the information.
          callback_data.file_handle = output_file;
+		 callback_data.image = Mat(Size(state.width, state.height), CV_8UC1);
          callback_data.pstate = &state;
          callback_data.abort = 0;
 

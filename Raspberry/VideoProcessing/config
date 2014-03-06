@@ -1,0 +1,6 @@
+dilate_n=3
+erode_n=1
+wifi=testpi
+maxLenght=900
+consecutiveHumans=1
+consecutiveNoHumans=45
