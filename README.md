@@ -1,4 +1,4 @@
-SWEETCam
+SlugCam Node Firmware
 ========
 
-Our ongoing project with the UCSC campus police to develop an energy efficient security camera to help improve campus safety.
+This repository holds firmware for both the high powered computer vision device, currently the raspberry pi, and for the msp430 micro controller. It also contains other helpful information about the node design and architecture.
