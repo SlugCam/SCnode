@@ -1,5 +1,14 @@
-all:
+all: directories
 	gcc -Wall -c src/wifi_test.c -o build/wifi_test.o
 	gcc -Wall -c src/WiFlyLib/wificmd.c -o build/wificmd.o
-	gcc -Wall build/* -o /bin/wifi_test
+	gcc -Wall build/* -o bin/wifi_test
 
+.PHONY: directories
+directories:
+	mkdir -p ./build ./bin
+
+clean:
+	rm -rf build
+
+spotless: clean
+	rm -rf bin
