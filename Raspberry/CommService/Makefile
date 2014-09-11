@@ -1,7 +1,28 @@
+TOOLCHAIN_DIR=../SlugcamBuildrootImage/output/
+
+BIN_DIR=${TOOLCHAIN_DIR}host/usr/bin/
+
+CC=${BIN_DIR}arm-buildroot-linux-uclibcgnueabi-gcc
+CXX="${BIN_DIR}toolchain/host/usr/bin/arm-buildroot-linux-uclibcgnueabi-g++"
+LD="${BIN_DIR}toolchain/host/usr/bin/arm-buildroot-linux-uclibcgnueabi-ld"
+
+BUILDROOT_STAGING_DIR=${TOOLCHAIN_DIR}staging
+BUILDROOT_TARGET_DIR=${TOOLCHAIN_DIR}target
+
+CFLAGS= -Wall -I "$(BUILDROOT_STAGING_DIR)/usr/include" \
+              -I "$(BUILDROOT_STAGING_DIR)/usr/include/wiringPi" \
+              -I "$(BUILDROOT_STAGING_DIR)/opt/vc/include" \
+              -L "$(BUILDROOT_STAGING_DIR)/opt/vc/lib" \
+              -L "$(BUILDROOT_STAGING_DIR)/usr/lib" \
+              -L "$(BUILDROOT_STAGING_DIR)/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/opt/vc/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/usr/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/lib" 
+
 all: directories
-	gcc -Wall -c src/wifi_test.c -o build/wifi_test.o
-	gcc -Wall -c src/WiFlyLib/wificmd.c -o build/wificmd.o
-	gcc -Wall build/* -o bin/wifi_test
+	${CC} ${CFLAGS} -c src/wifi_test.c -o build/wifi_test.o
+	${CC} ${CFLAGS} -c src/wificmd.c -o build/wificmd.o
+	${CC} ${CFLAGS} build/* -o bin/wifi_test
 
 .PHONY: directories
 directories:
