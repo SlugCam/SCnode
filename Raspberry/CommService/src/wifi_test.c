@@ -1,4 +1,8 @@
-#include "WiFlyLib/wificmd.h"
+#include "wificmd.h"
+
+
+#include <wiringPi.h>
+#include <wiringSerial.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,7 +27,7 @@ int main (int argc, char **argv)
 
     fd = initializeModule();
     //connectWifi();
-    serverConnect(fd,"localhost", "1234");
+    openConnection(fd,"localhost", "1234");
 
 
     //makeJSON("Test");
