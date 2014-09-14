@@ -22,7 +22,7 @@ int main (int argc, char **argv)
 
     fd = initializeModule();
     //connectWifi();
-    openConnection(fd,"localhost", "1234");
+    openConnection(fd,argv[1],argv[2]);
 
 
     //makeJSON("Test");

@@ -32,7 +32,7 @@ int initializeModule() {
     }
 
     fflush (stdout) ;
-    serialFlush(fd);
+    //serialFlush(fd);
 
     return fd;
 
@@ -139,22 +139,22 @@ int openConnection(int fd, char* address, char* port){
         printf("CMD mode Failed\n");
     }
 
-    serialPuts(fd,"set comm remote 0");
+    serialPuts(fd,"set comm remote 0\r");
 
     fflush (stdout) ;
-    serialFlush(fd);
+    //serialFlush(fd);
     delay (1000) ;
 
     //Open TCP connection
     // Command in form: "open "192.168.2.3 7892\r"
     //char * tcpOpenCommand = "open "192.168.2.3 7892\r";
-    serialPrintf(fd, "open %s %s\n", address, port);
+    serialPrintf(fd, "open %s %s\r", address, port);
 
     serialReceive(response, fd);    
     printf("%s\n", response);
 
     fflush (stdout) ;
-    serialFlush(fd);
+    //serialFlush(fd);
 
     cmdModeDisable(response, fd);
     return 0;
