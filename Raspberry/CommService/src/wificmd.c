@@ -177,5 +177,6 @@ int closeConnection (int fd) {
     }else{
         printf("Couldn't Exit CMD mode\n");
     }
+    return 0;
 
 }

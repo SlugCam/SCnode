@@ -1,19 +1,18 @@
-TOOLCHAIN_DIR=../SlugcamBuildrootImage/output/
+TOOLCHAIN_DIR=../SlugcamBuildrootImage/toolchain
 
-BIN_DIR=${TOOLCHAIN_DIR}host/usr/bin/
+BIN_DIR=${TOOLCHAIN_DIR}/host/usr/bin
 
-CC=${BIN_DIR}arm-buildroot-linux-uclibcgnueabi-gcc
-CXX="${BIN_DIR}arm-buildroot-linux-uclibcgnueabi-g++"
-LD="${BIN_DIR}arm-buildroot-linux-uclibcgnueabi-ld"
+CC=${BIN_DIR}/arm-buildroot-linux-uclibcgnueabi-gcc
+CXX=${BIN_DIR}/arm-buildroot-linux-uclibcgnueabi-g++
+LD=${BIN_DIR}/arm-buildroot-linux-uclibcgnueabi-ld
 
-BUILDROOT_STAGING_DIR=${TOOLCHAIN_DIR}staging
-BUILDROOT_TARGET_DIR=${TOOLCHAIN_DIR}target
+BUILDROOT_STAGING_DIR=${TOOLCHAIN_DIR}/staging
+BUILDROOT_TARGET_DIR=${TOOLCHAIN_DIR}/target
 
 
-#-I "$(BUILDROOT_STAGING_DIR)/usr/include/wiringPi"
 CFLAGS= -Wall -I "$(BUILDROOT_STAGING_DIR)/usr/include" \
               -I "$(BUILDROOT_STAGING_DIR)/opt/vc/include" \
-			  -I "./inc" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/include/wiringPi" \
               -L "$(BUILDROOT_STAGING_DIR)/opt/vc/lib" \
               -L "$(BUILDROOT_STAGING_DIR)/usr/lib" \
               -L "$(BUILDROOT_STAGING_DIR)/lib" \
