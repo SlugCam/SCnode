@@ -57,6 +57,7 @@ int serialReceive(char * response, int serialLine ){
 }
 
 
+
 /*
  * Check if command sent wasn't interpreted by module.
  ******************************************************************************
@@ -76,8 +77,7 @@ int checkCmdSyntax( char * response){
  ******************************************************************************
  */
 int cmdModeEnable(char * response, int serialLine){
-    char *cmdCommand = "$$$";
-    serialPuts(serialLine,cmdCommand);
+    serialPuts(serialLine,"$$$");
     delay (300) ;
 
     int size = serialReceive(response, serialLine);
@@ -131,6 +131,7 @@ int connectWifi(){
  ******************************************************************************
  */
 int openConnection(int fd, char* address, char* port){
+    printf("openConnection called to %s:%s\n", address, port);
 
     /*WiFi Module Enter Command mode */
     if( cmdModeEnable(response, fd) ==1){
@@ -140,35 +141,41 @@ int openConnection(int fd, char* address, char* port){
     }
 
     serialPuts(fd,"set comm remote 0\r");
+    serialReceive(response, fd);
+    printf("response to 'set comm remote 0': %s\n", response);
 
-    fflush (stdout) ;
+    //fflush (stdout) ;
     //serialFlush(fd);
-    delay (1000) ;
+    //delay (1000) ;
 
     //Open TCP connection
     // Command in form: "open "192.168.2.3 7892\r"
     //char * tcpOpenCommand = "open "192.168.2.3 7892\r";
+    
     serialPrintf(fd, "open %s %s\r", address, port);
-
     serialReceive(response, fd);    
-    printf("%s\n", response);
+    printf("response to open command: %s\n", response);
 
-    fflush (stdout) ;
+    //fflush (stdout) ;
     //serialFlush(fd);
 
     cmdModeDisable(response, fd);
+    printf("response to exit command: %s\n", response);
     return 0;
 }
 
 int closeConnection (int fd) {
+    printf("closeConnection called\n");
+
     cmdModeEnable(response, fd);
 
-    delay (300) ;
+    //delay (300) ;
     char * closeCommand = "close\r";
     serialPuts(fd,closeCommand);
-    delay (300) ;
+    //delay (300) ;
 
     serialReceive(response, fd);
+    printf("response to close command: %s\n", response);
 
 
     //Exit command mode
@@ -177,6 +184,8 @@ int closeConnection (int fd) {
     }else{
         printf("Couldn't Exit CMD mode\n");
     }
+    serialReceive(response, fd);
+    printf("response to close command: %s\n", response);
     return 0;
 
 }

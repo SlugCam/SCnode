@@ -21,17 +21,13 @@ int main (int argc, char **argv)
     char response[RECEIVEBUFF_SIZE];
 
     fd = initializeModule();
-    //connectWifi();
     openConnection(fd,argv[1],argv[2]);
 
 
-    //makeJSON("Test");
-    //Send JSON over serial
-    //printf("%s\n\n",sampleBatteryMsg );
     serialPuts(fd,"TEST");
     delay (300) ;
     serialReceive(response, fd);
-    printf(response);
+    printf("response to test message: %s\n", response);
 
     closeConnection(fd);
     serialClose(fd);
