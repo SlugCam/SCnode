@@ -18,42 +18,18 @@
 int main (int argc, char **argv)
 {
     int fd ;
-    int count ;
     char response[RECEIVEBUFF_SIZE];
 
-    // Sample JSON
-    char sampleBatteryMsg[] ="\n{\n\"id\":42,\n\"cam\":\"soeQuad\",\n\"time\": 1405028345,\n\"type\":\"battery\",\n\"data\":{\n \"time\": 1405027345,\n \"batteryPercentage\": 70,\n \"timeRemaining\": 350,\n \"batteryCondition\": \"Good\"\n }, \n\"ack\":[]\n}\n"; 
-
-
     fd = initializeModule();
-    //connectWifi();
-    openConnection(fd,"localhost", "1234");
+    openConnection(fd,argv[1],argv[2]);
 
 
-    //makeJSON("Test");
-    //Send JSON over serial
-    //printf("%s\n\n",sampleBatteryMsg );
-    serialPuts(fd,sampleBatteryMsg);
+    serialPuts(fd,"TEST");
     delay (300) ;
+    serialReceive(response, fd);
+    printf("response to test message: %s\n", response);
 
-    while (serialDataAvail (fd) > 0)
-    {
-        response = serialGetchar (fd) ;
-        fflush (stdout) ;
-        printf ("Response: %c and the number %d \n", response, response) ;
-    } 
-
-    //Recieve loop, recieve response from server over serial.
-
-
-    //parseJSON("JSON");
-
-    fflush (stdout) ;
-    serialFlush(fd);
-
-    //WiFi Module Enter Command mode
     closeConnection(fd);
-    serialFlush(fd);
     serialClose(fd);
     return 0 ;
 }

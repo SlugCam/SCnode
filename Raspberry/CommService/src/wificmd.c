@@ -10,6 +10,7 @@
 // TODO deal with responses in a more rational way, suggestion use buffer for
 // all responses, and when error, this buffer can be checked.
 
+char response[1024];
 
 // Initialize the WiFi Module serial port and return the file descriptor for the
 // serial port.
@@ -31,22 +32,12 @@ int initializeModule() {
     }
 
     fflush (stdout) ;
-    serialFlush(fd);
+    //serialFlush(fd);
 
     return fd;
 
 }
 
-// Disables the message sent to TCP on connect
-int disableHelloMessage(int fd) {
-    char response[1024];
-    cmdModeEnable(response, fd);
-    //Open TCP connection
-    char * cmd = "set comm remote 0";
-    serialPuts(fd,cmd);
-    serialReceive(response, fd);
-    cmdModeDisable(response, fd);
-}
 
 /*
  * Return recieved string from serial line. Function returns number of characters recieved.
@@ -60,9 +51,11 @@ int serialReceive(char * response, int serialLine ){
         response[i] = serialGetchar (serialLine) ;
         i++;
     }
+    response[i] = 0;
 
     return i;
 }
+
 
 
 /*
@@ -84,8 +77,7 @@ int checkCmdSyntax( char * response){
  ******************************************************************************
  */
 int cmdModeEnable(char * response, int serialLine){
-    char *cmdCommand = "$$$";
-    serialPuts(serialLine,cmdCommand);
+    serialPuts(serialLine,"$$$");
     delay (300) ;
 
     int size = serialReceive(response, serialLine);
@@ -93,11 +85,8 @@ int cmdModeEnable(char * response, int serialLine){
         printf("Nothing read as response\n");
         return 0;
     }else if( strcmp(response, "CMD\r\n") == 0){
-        //TODO necessary?
-        memset(&response[0], 0, sizeof(response));
         return 1;
     } else {
-        memset(&response[0], 0, sizeof(response));
         return 0;
     }
 }
@@ -117,18 +106,14 @@ int cmdModeDisable(char * response, int serialLine){
         i++;
     }
     if (checkCmdSyntax(response) == 1){
-        memset(&response[0], 0, sizeof(response));
         serialPuts(serialLine,exitCommand);
         serialReceive(response, serialLine);
         if (checkCmdSyntax(response) == 0){
-            memset(&response[0], 0, sizeof(response));
             return 1;
         }else{
-            memset(&response[0], 0, sizeof(response));
             return 0;
         }
     }
-    memset(&response[0], 0, sizeof(response));
     return 1;
 }
 
@@ -146,7 +131,7 @@ int connectWifi(){
  ******************************************************************************
  */
 int openConnection(int fd, char* address, char* port){
-    char response[1024];
+    printf("openConnection called to %s:%s\n", address, port);
 
     /*WiFi Module Enter Command mode */
     if( cmdModeEnable(response, fd) ==1){
@@ -155,50 +140,42 @@ int openConnection(int fd, char* address, char* port){
         printf("CMD mode Failed\n");
     }
 
+    serialPuts(fd,"set comm remote 0\r");
+    serialReceive(response, fd);
+    printf("response to 'set comm remote 0': %s\n", response);
 
-    fflush (stdout) ;
-    serialFlush(fd);
-    delay (1000) ;
+    //fflush (stdout) ;
+    //serialFlush(fd);
+    //delay (1000) ;
 
     //Open TCP connection
     // Command in form: "open "192.168.2.3 7892\r"
     //char * tcpOpenCommand = "open "192.168.2.3 7892\r";
-    serialPuts(fd,"open ");
-    serialPuts(fd,address);
-    serialPuts(fd," ");
-    serialPuts(fd,port);
-    serialPuts(fd,"\r");
+    
+    serialPrintf(fd, "open %s %s\r", address, port);
+    serialReceive(response, fd);    
+    printf("response to open command: %s\n", response);
 
+    //fflush (stdout) ;
+    //serialFlush(fd);
 
-    while (serialDataAvail (fd) > 0)
-    {
-        response = serialGetchar (fd) ;
-        fflush (stdout) ;
-        printf ("Response: %c and the number %d \n", response, response) ;
-    } 
-
-
-
-    fflush (stdout) ;
-    serialFlush(fd);
-
-    cmdModeDisable();
+    cmdModeDisable(response, fd);
+    printf("response to exit command: %s\n", response);
     return 0;
 }
 
 int closeConnection (int fd) {
-    cmdModeEnable(fd);
+    printf("closeConnection called\n");
 
-    delay (300) ;
+    cmdModeEnable(response, fd);
+
+    //delay (300) ;
     char * closeCommand = "close\r";
     serialPuts(fd,closeCommand);
-    delay (300) ;
-    while (serialDataAvail (fd) > 0)
-    {
-    response = serialGetchar (fd) ;
-    fflush (stdout) ;
-    printf ("Response: %c and the number %d \n", response, response) ;
-    }
+    //delay (300) ;
+
+    serialReceive(response, fd);
+    printf("response to close command: %s\n", response);
 
 
     //Exit command mode
@@ -207,5 +184,8 @@ int closeConnection (int fd) {
     }else{
         printf("Couldn't Exit CMD mode\n");
     }
+    serialReceive(response, fd);
+    printf("response to close command: %s\n", response);
+    return 0;
 
 }
