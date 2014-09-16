@@ -94,11 +94,29 @@ void send_video(int sockfd, char* filename) {
     }    
 
     fclose(fp);
-    //strcpy(buffer, CAMERA_NAME);
-    //n = write(sockfd,buffer,strlen(buffer));
-    //if (n < 0) 
-    //  error("ERROR writing to socket");
+    
+    // ACK IT UP
+    char id_s[256];
+    sprintf(id_s, "%d\r", id);
+    int l = strlen(id_s);
+    int i = 0;
+    char c;
+    while(1) {
+       c = serialGetchar(sockfd);
+       printf("get %c\n", c);
+       if (c == id_s[i]) {
+           i++;
+       } else {
+           error("ERROR receiving ACK");
+       }
+
+       if (i == l) {
+           break;
+       }
+    }
+
 }
+
 
 
 int main(int arc, char** argv) {
