@@ -144,7 +144,6 @@ int main(int arc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    delay(3000);
     closeConnection(fd);
     serialClose(fd);
     return 0;
