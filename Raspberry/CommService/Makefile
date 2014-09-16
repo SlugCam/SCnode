@@ -20,10 +20,18 @@ CFLAGS= -Wall -I "$(BUILDROOT_STAGING_DIR)/usr/include" \
               -L "$(BUILDROOT_TARGET_DIR)/usr/lib" \
               -L "$(BUILDROOT_TARGET_DIR)/lib" 
 
-all: directories
-	${CC} ${CFLAGS} -c src/wifi_test.c -o build/wifi_test.o
-	${CC} ${CFLAGS} -c src/wificmd.c -o build/wificmd.o
-	${CC} ${CFLAGS} build/* -lwiringPi -lpthread -o bin/wifi_test
+all: directories bin/wifi_test bin/vidsender
+
+bin/wifi_test: build/wifi_test.o build/wificmd.o
+	${CC} ${CFLAGS} build/wifi_test.o build/wificmd.o -lwiringPi -lpthread -o bin/wifi_test
+
+bin/vidsender: build/vidsender.o build/wificmd.o
+	${CC} ${CFLAGS} build/vidsender.o build/wificmd.o -lwiringPi -lpthread -o bin/vidsender
+
+
+build/%.o: src/%.c 
+	$(CC) $(CFLAGS) -c -o $@ $< 
+
 
 .PHONY: directories
 directories:
