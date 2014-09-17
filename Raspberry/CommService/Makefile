@@ -20,7 +20,7 @@ CFLAGS= -Wall -I "$(BUILDROOT_STAGING_DIR)/usr/include" \
               -L "$(BUILDROOT_TARGET_DIR)/usr/lib" \
               -L "$(BUILDROOT_TARGET_DIR)/lib" 
 
-all: directories bin/wifi_test bin/vidsender
+all: directories bin/wifi_test bin/vidsender bin/vidsender2
 
 bin/wifi_test: build/wifi_test.o build/wificmd.o
 	${CC} ${CFLAGS} build/wifi_test.o build/wificmd.o -lwiringPi -lpthread -o bin/wifi_test
@@ -28,6 +28,8 @@ bin/wifi_test: build/wifi_test.o build/wificmd.o
 bin/vidsender: build/vidsender.o build/wificmd.o
 	${CC} ${CFLAGS} build/vidsender.o build/wificmd.o -lwiringPi -lpthread -o bin/vidsender
 
+bin/vidsender2: build/vidsender2.o build/wificmd.o build/vidlib.o
+	${CC} ${CFLAGS} build/vidsender2.o build/vidlib.o build/wificmd.o -lwiringPi -lpthread -o bin/vidsender2
 
 build/%.o: src/%.c 
 	$(CC) $(CFLAGS) -c -o $@ $< 
