@@ -38,13 +38,13 @@ int initializeModule() {
 
 }
 
-
 /*
  * Return recieved string from serial line. Function returns number of characters recieved.
  ******************************************************************************
  */
 int serialReceive(char * response, int serialLine ){
     int i = 0;
+    delay(100);
 
     while ( serialDataAvail (serialLine) > 0 )
     {
@@ -99,12 +99,10 @@ int cmdModeDisable(char * response, int serialLine){
     char * exitCommand = "exit\r";
     serialPuts(serialLine,exitCommand);
 
-    int size = serialReceive(response, serialLine);
-    int i = 0;
-    while (i< size){
-        printf("%d\n", response[i] );
-        i++;
-    }
+    serialReceive(response, serialLine);
+
+    printf("cmdModeDisable response: %s\n", response);
+
     if (checkCmdSyntax(response) == 1){
         serialPuts(serialLine,exitCommand);
         serialReceive(response, serialLine);
@@ -159,8 +157,8 @@ int openConnection(int fd, char* address, char* port){
     //fflush (stdout) ;
     //serialFlush(fd);
 
-    cmdModeDisable(response, fd);
-    printf("response to exit command: %s\n", response);
+    //cmdModeDisable(response, fd);
+    //printf("response to exit command: %s\n", response);
     return 0;
 }
 
