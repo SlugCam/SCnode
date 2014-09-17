@@ -458,8 +458,8 @@ int main(int argc, const char **argv)
 
         //set up video file
         callback_data.fileName = to_string(rand()) + ".avi";
-        VideoWriter record(callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
-        VideoWriter record2("Demo_"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
+        VideoWriter record("raw/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
+        VideoWriter record2("vids/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
         callback_data.fileHandle = record;
         callback_data.fileHandle2 = record2;
 
