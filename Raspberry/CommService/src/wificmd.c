@@ -137,6 +137,10 @@ int openConnection(int fd, char* address, char* port){
     }else{
         printf("CMD mode Failed\n");
     }
+    serialFlush(fd);
+    serialPuts(fd,"close\r");
+    serialReceive(response, fd);
+    printf("response to 'set comm remote 0': %s\n", response);
 
     serialPuts(fd,"set comm remote 0\r");
     serialReceive(response, fd);

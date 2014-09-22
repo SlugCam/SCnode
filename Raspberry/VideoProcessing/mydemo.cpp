@@ -457,9 +457,10 @@ int main(int argc, const char **argv)
         callback_data.image2 = Mat(Size(state.width, state.height), CV_8UC1);
 
         //set up video file
-        callback_data.fileName = to_string(rand()) + ".avi";
-        VideoWriter record("raw/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
-        VideoWriter record2("vids/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
+        
+        callback_data.fileName = to_string(time(NULL)) + ".avi";
+        VideoWriter record("/slugcam/raw/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
+        VideoWriter record2("/slugcam/vids/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
         callback_data.fileHandle = record;
         callback_data.fileHandle2 = record2;
 

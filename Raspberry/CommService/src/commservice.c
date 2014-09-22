@@ -2,6 +2,7 @@
 // http://www.ibm.com/developerworks/library/l-ubuntu-inotify/
 
 #include <stdio.h>
+#include <syslog.h>
 
 // For sleep
 #include <unistd.h>
