@@ -1,5 +1,6 @@
 #include "wificmd.h"
 
+#include <syslog.h>
 #include <wiringPi.h>
 #include <wiringSerial.h>
 #include <stdio.h>
@@ -20,14 +21,16 @@ int initializeModule() {
     //open serial port
     if ((fd = serialOpen ("/dev/ttyAMA0", 115200)) < 0)
     {
-        fprintf (stderr, "Unable to open serial device: %s\n", strerror (errno)) ;
+        //fprintf (stderr, "Unable to open serial device: %s\n", strerror (errno)) ;
+        syslog (LOG_ERR, "Unable to open serial device: %s\n", strerror (errno)) ;
         return 1 ;
     }
 
     //The wiringPi's kernel setup procedures
     if (wiringPiSetup () == -1)
     {
-        fprintf (stdout, "Unable to start wiringPi: %s\n", strerror (errno)) ;
+        //fprintf (stdout, "Unable to start wiringPi: %s\n", strerror (errno)) ;
+        syslog (LOG_ERR, "Unable to start wiringPi: %s\n", strerror (errno)) ;
         return 1 ;
     }
 
@@ -44,7 +47,7 @@ int initializeModule() {
  */
 int serialReceive(char * response, int serialLine ){
     int i = 0;
-    delay(100);
+    delay(300);
 
     while ( serialDataAvail (serialLine) > 0 )
     {
@@ -77,12 +80,14 @@ int checkCmdSyntax( char * response){
  ******************************************************************************
  */
 int cmdModeEnable(char * response, int serialLine){
+    serialFlush(serialLine);
+    delay (300) ;
     serialPuts(serialLine,"$$$");
     delay (300) ;
 
     int size = serialReceive(response, serialLine);
     if (size == 0){
-        printf("Nothing read as response\n");
+        //printf("Nothing read as response\n");
         return 0;
     }else if( strcmp(response, "CMD\r\n") == 0){
         return 1;
@@ -101,7 +106,8 @@ int cmdModeDisable(char * response, int serialLine){
 
     serialReceive(response, serialLine);
 
-    printf("cmdModeDisable response: %s\n", response);
+    //printf("cmdModeDisable response: %s\n", response);
+    syslog(LOG_DEBUG, "cmdModeDisable response: %s\n", response);
 
     if (checkCmdSyntax(response) == 1){
         serialPuts(serialLine,exitCommand);
@@ -129,22 +135,28 @@ int connectWifi(){
  ******************************************************************************
  */
 int openConnection(int fd, char* address, char* port){
-    printf("openConnection called to %s:%s\n", address, port);
+    //printf("openConnection called to %s:%s\n", address, port);
+    syslog(LOG_DEBUG, "openConnection called to %s:%s\n", address, port);
+
 
     /*WiFi Module Enter Command mode */
     if( cmdModeEnable(response, fd) ==1){
-        printf("CMD mode Enabled\n");
+        //printf("CMD mode Enabled\n");
+        syslog(LOG_DEBUG, "CMD mode Enabled\n");
     }else{
-        printf("CMD mode Failed\n");
+        //printf("CMD mode Failed\n");
+        syslog(LOG_DEBUG, "CMD mode Failed\n");
     }
-    serialFlush(fd);
+
     serialPuts(fd,"close\r");
     serialReceive(response, fd);
-    printf("response to 'set comm remote 0': %s\n", response);
+    //printf("response to 'close': %s\n", response);
+    syslog(LOG_DEBUG,"response to 'close': %s\n", response);
 
     serialPuts(fd,"set comm remote 0\r");
     serialReceive(response, fd);
-    printf("response to 'set comm remote 0': %s\n", response);
+    //printf("response to 'set comm remote 0': %s\n", response);
+    syslog(LOG_DEBUG,"response to 'set comm remote 0': %s\n", response);
 
     //fflush (stdout) ;
     //serialFlush(fd);
@@ -156,7 +168,8 @@ int openConnection(int fd, char* address, char* port){
     
     serialPrintf(fd, "open %s %s\r", address, port);
     serialReceive(response, fd);    
-    printf("response to open command: %s\n", response);
+    //printf("response to open command: %s\n", response);
+    syslog(LOG_DEBUG,"response to open command: %s\n", response);
 
     //fflush (stdout) ;
     //serialFlush(fd);
@@ -167,7 +180,8 @@ int openConnection(int fd, char* address, char* port){
 }
 
 int closeConnection (int fd) {
-    printf("closeConnection called\n");
+    //printf("closeConnection called\n");
+    syslog(LOG_DEBUG,"closeConnection called\n");
 
     cmdModeEnable(response, fd);
 
@@ -177,17 +191,21 @@ int closeConnection (int fd) {
     //delay (300) ;
 
     serialReceive(response, fd);
-    printf("response to close command: %s\n", response);
+    //printf("response to close command: %s\n", response);
+    syslog(LOG_DEBUG,"response to close command: %s\n", response);
 
 
     //Exit command mode
     if( cmdModeDisable(response, fd) ==1){
-        printf("CMD mode Disabled\n");
+        //printf("CMD mode Disabled\n");
+        syslog(LOG_DEBUG,"CMD mode Disabled\n");
     }else{
-        printf("Couldn't Exit CMD mode\n");
+        //printf("Couldn't Exit CMD mode\n");
+        syslog(LOG_DEBUG,"Couldn't Exit CMD mode\n");
     }
     serialReceive(response, fd);
-    printf("response to close command: %s\n", response);
+    //printf("response to exit command: %s\n", response);
+    syslog(LOG_DEBUG,"response to exit command: %s\n", response);
     return 0;
 
 }

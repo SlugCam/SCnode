@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 #include <syslog.h>
-
-// For sleep
 #include <unistd.h>
 
 // For directory checking
@@ -67,6 +65,20 @@ int main(int argc, char** argv) {
         // read /etc/slugcam
     }
     */
+
+
+
+    //setlogmask (LOG_UPTO (LOG_DEBUG));
+
+    openlog ("commservice", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+
+    syslog (LOG_NOTICE, "Program started by User %d", getuid());
+    //syslog (LOG_INFO, "A tree falls in a forest");//GNU doc example
+
+
+
+
+
     char *cam_name = "SlugCam1",
          *video_hostname = "skynet.soe.ucsc.edu",
          *video_port = "7893",
@@ -79,13 +91,18 @@ int main(int argc, char** argv) {
 
     // Send priority video
     //
+    //
     // Should eventually use inotify instead of polling
     while (1) {
-        printf("checking %s...\n", video_dir);
+
+        //printf("checking %s...\n", video_dir);
+        syslog (LOG_DEBUG, "checking %s...", video_dir);
+
         if (dir_hasfile(video_dir)) {
             send_video_directory(cam_name, video_dir, video_hostname, video_port);
         } else {
-            printf("empty\n");
+            //printf("empty\n");
+            syslog (LOG_DEBUG, "empty");
         }
         sleep(2);
     }
@@ -95,6 +112,7 @@ int main(int argc, char** argv) {
     // Send rest of video
 
     // Monitor video and message folders for new stuff
+    closelog ();
     return 0;
 
 }

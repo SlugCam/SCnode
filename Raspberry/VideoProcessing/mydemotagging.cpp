@@ -411,6 +411,7 @@ int set_camera_parameters(MMAL_COMPONENT_T *camera, const RASPICAM_CAMERA_PARAME
  */
 int main(int argc, const char **argv)
 {
+    bool tag_sent = false;
     // Our main data storage vessel..
     RASPIVID_STATE state;
 
@@ -683,6 +684,10 @@ int main(int argc, const char **argv)
                         callback_data.noHumanDetected = 0;
 
                         cout<<"Humans detected:"<<callback_data.humanDetected;
+                        if (!tag_sent) {
+                            system("/slugcam/bin/wifly_ctl tag &");
+                            tag_sent = true;
+                        }
                     } 
                     //Add human not detect
                     else
