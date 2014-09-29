@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include "vidlib.h"
+
 int main(int argc, char** argv) {
-   send_video_directory("SlugCam1", "/slugcam/vid_out", "skynet.soe.ucsc.edu", "7893"); 
+   return send_video_directory(getenv("SC_CAMNAME"), "/slugcam/vid_out", getenv("SC_VSERVER"), getenv("SC_VPORT")); 
 }

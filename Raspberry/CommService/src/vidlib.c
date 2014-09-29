@@ -78,7 +78,7 @@ int send_video(int sockfd, char* filename) {
     delay(10);
     // Write out file
     uint32_t rem = size;
-    char buffer[1024];
+    char buffer[512];
     size_t r;
     int to_read;
 
