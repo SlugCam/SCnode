@@ -59,15 +59,15 @@ void setup() {
   attachInterrupt(pirDoutPin, motionDetected, RISING);
   //attachInterrupt(spiChipEnablePin, spiCommReady, RISING);
 
-  //digitalWrite(relaySetPin, LOW);
+  digitalWrite(debugPin, LOW);
 
   disableWDT(); // Watch Dog Timer
   configureACLK(); //sets up onboard 12KHz clock
-  sleepTimerSeconds = 60; //set sleep time
+  sleepTimerSeconds = 5*(60*(60-3)); //set sleep time
   configureTimer(); //setup Timer_A with starting coundown(seconds)
   
   //__enable_interrupt();
-  _BIS_SR(LPM3_bits + GIE);
+  _BIS_SR(GIE);
   
   
   // give SlugCam time to boot
@@ -81,12 +81,14 @@ void setup() {
 void loop() {
   
   
-  if(motionInteruptFlag == HIGH){
-    processMotion();
+  if(timerInteruptFlag == HIGH){
+    timerInteruptFlag = LOW; 
+    processTimerExpired();
   }else if(spiInteruptFlag == HIGH){
     processSPI();
-  }else if(timerInteruptFlag == HIGH){
-    processTimerExpired();
+  }else if(motionInteruptFlag == HIGH){
+    motionInteruptFlag = LOW;  
+    processMotion();
   }else if((motionInteruptFlag == LOW) && (spiInteruptFlag == LOW) &&
                 (timerInteruptFlag == LOW)){
     //deep sleep  
@@ -105,7 +107,6 @@ void processMotion(){
   }
   digitalWrite(debugPin, HIGH);
   currentTimerSeconds = 0;
-  motionInteruptFlag = LOW;  
   
 }
 
@@ -115,14 +116,14 @@ void processSPI(void){
 
 void processTimerExpired(void){
   //delay power off a few 3 more seconds
- 
   digitalWrite(debugPin, LOW);
   //now turn off relay
   if(digitalRead(relaySetPin) == HIGH){
        digitalWrite(relaySetPin, LOW);
        digitalWrite(relayResetPin, HIGH);
   }
- timerInteruptFlag = LOW; 
+  
+ 
 }
 
 
@@ -131,7 +132,6 @@ void processTimerExpired(void){
 ******************************/
 
 void motionDetected(void){
-  //CCR0 += 12000 * 60;
   motionInteruptFlag = HIGH;
 }
 
@@ -144,7 +144,7 @@ void spiCommReady(void){
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A (void)
 {
-  currentTimerSeconds += 5; // a second has gone by
+  currentTimerSeconds ++; // a second has gone by
   if(currentTimerSeconds == sleepTimerSeconds){
     timerInteruptFlag = HIGH;
   }
@@ -155,18 +155,21 @@ __interrupt void Timer_A (void)
   MSP430 Functions
 ******************************/
 void disableWDT(void){
-  WDTCTL = (WDTPW | WDTHOLD);
+  WDTCTL = WDTPW + WDTHOLD;// Stop watchdog timer
+
 }
 
 void configureACLK(void) {
-// Stop watchdog timer
+  //Check memory
   if (CALBC1_1MHZ == 0xFF || CALDCO_1MHZ == 0xFF)
     FaultRoutine();// If clock calibration data has been erased
-//  BCSCTL1 = CALBC1_1MHZ; // Set DCO Clock to 1MHz
-//   DCOCTL = CALDCO_1MHZ;
-//  BCSCTL3 |= LFXT1S_2;
-//  IFG1 &= ~OFIFG;
-//  BCSCTL2 |= SELM_0 + DIVM_3 + DIVS_3;
+  BCSCTL1 = CALBC1_1MHZ;
+  DCOCTL = CALDCO_1MHZ;
+  BCSCTL3 |= LFXT1S_2;
+  IFG1 &= ~OFIFG; 
+  BCSCTL2 |= SELM_0 + DIVM_3 + DIVS_3;
+
+
 }
 
 //Incase of Hardware failures or security breach
@@ -176,8 +179,8 @@ void FaultRoutine(void) {
 } 
 
 void configureTimer(){
-    TACCTL0 |= CCIE;	//Enable Interrupts on Timer
-    TACCR0 = 12000 * 5;	//Number of cycles in the timer
+    CCTL0 = CCIE;
+    CCR0 = 11800;
     TACTL |= TASSEL_1;	//Use ACLK as source for timer
     TACTL |= MC_1;	//Use UP mode timer
 }
