@@ -26,6 +26,7 @@
      Reset: pin 10 (P2.2)
  */
 
+
 volatile int motionInteruptFlag = LOW;
 volatile int spiInteruptFlag = LOW;
 volatile int timerInteruptFlag = LOW;
