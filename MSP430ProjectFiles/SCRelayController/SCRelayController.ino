@@ -25,13 +25,17 @@
      Set: pin 9 (P2.1)
      Reset: pin 10 (P2.2)
  */
-
+#include <timerPacket.h>
+#include "msp430g2553.h"
 
 volatile int motionInteruptFlag = LOW;
 volatile int spiInteruptFlag = LOW;
 volatile int timerInteruptFlag = LOW;
+volatile unsigned int sleepTimerSeconds = 0;
+volatile unsigned int currentTimerSeconds = 0;
 
 const int spiChipEnablePin = 6;
+const int debugPin = 8;
 const int relaySetPin = 9;
 const int relayResetPin = 10;
 const int pirDoutPin = 11; 
@@ -49,17 +53,21 @@ void setup() {
   pinMode(relayResetPin, OUTPUT);
   pinMode(pirDoutPin, INPUT);
   pinMode(pirEnablePin, OUTPUT);
+  
+   pinMode(debugPin, OUTPUT);
 
   attachInterrupt(pirDoutPin, motionDetected, RISING);
-  attachInterrupt(spiChipEnablePin, spiCommReady, RISING);
+  //attachInterrupt(spiChipEnablePin, spiCommReady, RISING);
 
-  digitalWrite(relaySetPin, LOW);
+  //digitalWrite(relaySetPin, LOW);
 
   disableWDT(); // Watch Dog Timer
   configureACLK(); //sets up onboard 12KHz clock
-  configureTimer(60); //setup Timer_A with starting coundown(seconds)
+  sleepTimerSeconds = 60; //set sleep time
+  configureTimer(); //setup Timer_A with starting coundown(seconds)
   
-  //_BIS_SR(GIE);
+  //__enable_interrupt();
+  _BIS_SR(LPM3_bits + GIE);
   
   
   // give SlugCam time to boot
@@ -95,6 +103,8 @@ void processMotion(){
        digitalWrite(relaySetPin, HIGH);
        digitalWrite(relayResetPin, LOW);
   }
+  digitalWrite(debugPin, HIGH);
+  currentTimerSeconds = 0;
   motionInteruptFlag = LOW;  
   
 }
@@ -105,8 +115,8 @@ void processSPI(void){
 
 void processTimerExpired(void){
   //delay power off a few 3 more seconds
-  
-  
+ 
+  digitalWrite(debugPin, LOW);
   //now turn off relay
   if(digitalRead(relaySetPin) == HIGH){
        digitalWrite(relaySetPin, LOW);
@@ -121,6 +131,7 @@ void processTimerExpired(void){
 ******************************/
 
 void motionDetected(void){
+  //CCR0 += 12000 * 60;
   motionInteruptFlag = HIGH;
 }
 
@@ -133,26 +144,29 @@ void spiCommReady(void){
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A (void)
 {
-  timerInteruptFlag = HIGH;
-  CCR0 += 12000 * 60;
+  currentTimerSeconds += 5; // a second has gone by
+  if(currentTimerSeconds == sleepTimerSeconds){
+    timerInteruptFlag = HIGH;
+  }
+ 
 } 
 
 /******************************
   MSP430 Functions
 ******************************/
 void disableWDT(void){
-  WDTCTL = WDTPW + WDTHOLD;
+  WDTCTL = (WDTPW | WDTHOLD);
 }
 
 void configureACLK(void) {
 // Stop watchdog timer
   if (CALBC1_1MHZ == 0xFF || CALDCO_1MHZ == 0xFF)
-    //FaultRoutine();// If clock calibration data has been erased
-  BCSCTL1 = CALBC1_1MHZ;
-  DCOCTL = CALDCO_1MHZ;
-  BCSCTL3 |= LFXT1S_2;
-  IFG1 &= ~OFIFG;
-  BCSCTL2 |= SELM_0 + DIVM_3 + DIVS_3;
+    FaultRoutine();// If clock calibration data has been erased
+//  BCSCTL1 = CALBC1_1MHZ; // Set DCO Clock to 1MHz
+//   DCOCTL = CALDCO_1MHZ;
+//  BCSCTL3 |= LFXT1S_2;
+//  IFG1 &= ~OFIFG;
+//  BCSCTL2 |= SELM_0 + DIVM_3 + DIVS_3;
 }
 
 //Incase of Hardware failures or security breach
@@ -161,9 +175,10 @@ void FaultRoutine(void) {
   while(1); 
 } 
 
-void configureTimer(int startSeconds){
-  CCTL0 = CCIE;
-  CCR0 = 12000 * startSeconds;
-  TACTL = TASSEL_1 + MC_2;
+void configureTimer(){
+    TACCTL0 |= CCIE;	//Enable Interrupts on Timer
+    TACCR0 = 12000 * 5;	//Number of cycles in the timer
+    TACTL |= TASSEL_1;	//Use ACLK as source for timer
+    TACTL |= MC_1;	//Use UP mode timer
 }
 
