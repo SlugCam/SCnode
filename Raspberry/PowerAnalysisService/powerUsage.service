@@ -1,0 +1,16 @@
+[Unit]
+Description=SlugCam's Power Consumption Analysis Service
+Documentation=https://github.com/SlugCam/SCnode/tree/master/Raspberry/PowerAnalysisService
+#Wants=SCmanagement.service  -- We might want a parent service?
+#After=SCmanagement.service
+
+[Service]
+#Need to set it to type forking for daemons.
+Type=forking
+ExecStart=/usr/lib/SC-daemons/PowerAnalysis-daemon
+StandardOutput=inheirit
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
