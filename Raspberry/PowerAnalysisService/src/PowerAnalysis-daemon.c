@@ -18,6 +18,9 @@
 #include	<syslog.h>
 #include	<strings.h>
 
+#include 	"cJSON.h"
+//#include 	<wiringPi.h>
+
 #define		UNIXSOCKET_PATH "/tmp/paunix.str"
 #define		MAXLINE		4096	/* max text line length */
 #define 	LISTENQUEUE	1024
