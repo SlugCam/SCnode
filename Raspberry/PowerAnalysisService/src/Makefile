@@ -1,6 +1,6 @@
 #Makefile for PowerAnalysis-daemon
 
-daemon: cJSON.h wrappers.h scLogger.h
+daemon: PowerAnalysis-daemon.h cJSON.h wrappers.h scLogger.h
 	gcc -o PowerAnalysis-daemon cJSON.c PowerAnalysis-daemon.c wrappers.c scLogger.c #-lwiringPi
 
 testClient:

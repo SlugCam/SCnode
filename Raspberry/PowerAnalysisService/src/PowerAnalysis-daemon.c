@@ -2,7 +2,11 @@
 *  SlugCam's Energy Consumption Monitoring Service
 *  Author: Kevin Abas
 *  Date: 3/8/2015
-*  Description:
+*  Description: This is SlugCam's Power Analysis Daemon that not only monitors battery 
+*				life and status, but also processes requests from other daemons and responds
+*				with status messages.
+*
+*  INSERT LICENCE HERE
 */
 
 
@@ -17,31 +21,23 @@
 #include 	<signal.h>
 #include	<syslog.h>
 #include	<strings.h>
+#include	<time.h>
 
 #include 	"cJSON.h" 
 #include	"wrappers.h"
 #include	"scLogger.h"
+#include	"PowerAnalysis-daemon.h"
 //#include 	<wiringPi.h>
 
-#define		UNIXSOCKET_PATH "/tmp/paunix.str"
-#define		MAXLINE		4096	/* max text line length */
-#define 	LISTENQUEUE	1024
-#define	SA	struct sockaddr
 
 #ifndef	AF_LOCAL
 #define AF_LOCAL	AF_UNIX // system may not support AF_LOCAL yet
 #endif		
 
-/* Global variables for now, will move them*/
-static int	read_cnt;
-static char	*read_ptr;
-static char	read_buf[MAXLINE];
-
-
 
 
 /* Socket I/O functions */
-ssize_t	uWrite(int fd, const void *vptr, size_t n) {
+ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	size_t		nleft;
 	ssize_t		nwritten;
 	const char	*ptr;
@@ -63,12 +59,31 @@ ssize_t	uWrite(int fd, const void *vptr, size_t n) {
 		err_log("write error");
 	return(n);
 }
-static ssize_t my_read(int fd, char *ptr) {
+int parseRequest( const void *vptr, size_t n){
+	const char	*ptr;
+	cJSON 		*root;
+	paRequest 	*curr_request;
+
+	ptr = vptr;
+	if ( (root = cJSON_Parse(ptr)) == 0){
+		return -1;
+	}else{
+		curr_request->type= cJSON_GetObjectItem(root,"type")->valuestring;
+		curr_request->data= cJSON_GetObjectItem(root,"data")->valuestring;
+		curr_request->timercvd= time(&curr_request->timercvd);
+	}
+	return 1;
+
+}
+static ssize_t readBytes(int fd, char *ptr) {
+	static int	read_cnt;
+	static char	*read_ptr;
+	static char	read_buf[MAXLINE];
 
 	if (read_cnt <= 0) {
 again:
 		if ( (read_cnt = read(fd, read_buf, sizeof(read_buf))) < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR) /* EINTR = interupt syscall */
 				goto again;
 			return(-1);
 		} else if (read_cnt == 0)
@@ -85,7 +100,7 @@ ssize_t readline(int fd, void *vptr, size_t maxlen) {
 	char	c, *ptr;
 	ptr = vptr;
 	for (n = 1; n < maxlen; n++) {
-		if ( (rc = my_read(fd, &c)) == 1) {
+		if ( (rc = readBytes(fd, &c)) == 1) {
 			*ptr++ = c;
 			if (c == '\n')
 				break;	
@@ -99,11 +114,6 @@ ssize_t readline(int fd, void *vptr, size_t maxlen) {
 	*ptr = 0;	
 	return(n);
 }
-ssize_t readlinebuf(void **vptrptr) {
-	if (read_cnt)
-		*vptrptr = read_ptr;
-	return(read_cnt);
-}
 ssize_t Readline(int fd, void *ptr, size_t maxlen) {
 	ssize_t		n;
 
@@ -111,15 +121,21 @@ ssize_t Readline(int fd, void *ptr, size_t maxlen) {
 		err_log("readline error");
 	return(n);
 }
-void str_echo(int sockfd) {
+void read_request(int sockfd) {
     ssize_t     n;
-    char        line[MAXLINE];
+    char        request[MAXLINE];
  
-    for ( ; ; ) {
-        if ( (n = Readline(sockfd, line, MAXLINE)) == 0)
-            return;  
- 
-        uWrite(sockfd, line, n);
+    while(1) {
+        if ( (n = Readline(sockfd, request, MAXLINE)) == 0)
+            return;  /* No rquest was recieved */
+ 		
+        if (parseRequest(request, MAXLINE) < 0){
+			warn_log("Nothing Parsed, Incorrect JSON format");
+			return;
+		}
+
+		//TODO: MAKE JSON RESPONSE AND SEND IT BACK
+        //wrap_write(sockfd, request, n);
     }
 }
 
@@ -131,7 +147,6 @@ int main(int argc, char **argv) {
 	pid_t				childpid;
 	socklen_t			clilen;
 	struct sockaddr_un	cliaddr, servaddr;
-	void				sig_chld(int);
 
 	listenfd = wrap_socket(AF_LOCAL, SOCK_STREAM, 0);
 
@@ -144,7 +159,7 @@ int main(int argc, char **argv) {
 
 	wrap_listen(listenfd, LISTENQUEUE);
 
-	for ( ; ; ) {
+	while(1) {
 		clilen = sizeof(cliaddr);
 		if ( (connfd = accept(listenfd, (SA *) &cliaddr, &clilen)) < 0) {
 			if (errno == EINTR)
@@ -154,8 +169,8 @@ int main(int argc, char **argv) {
 		}
 
 		if ( (childpid = wrap_fork()) == 0) {	
-			wrap_close(listenfd);	
-			str_echo(connfd);	/* process request */
+			wrap_close(listenfd);	/* Close listening socket on cloned process */
+			read_request(connfd);	/* process request */
 			exit(0);
 		}
 		wrap_close(connfd);			/* parent closes connected socket */

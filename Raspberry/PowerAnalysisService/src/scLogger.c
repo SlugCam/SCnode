@@ -76,7 +76,7 @@ void warn_log(const char *fmt, ...) {
 	va_start(ap, fmt);
 	multiarg_log(0, LOG_WARNING, fmt, ap);
 	va_end(ap);
-	exit(1);
+	return;
 }
 void info_log(const char *fmt, ...) {
 	va_list		ap;
@@ -84,7 +84,7 @@ void info_log(const char *fmt, ...) {
 	va_start(ap, fmt);
 	multiarg_log(0, LOG_INFO, fmt, ap);
 	va_end(ap);
-	exit(1);
+	return;
 }
 void debug_log(const char *fmt, ...) {
 	va_list		ap;
