@@ -18,7 +18,9 @@
 #include	<syslog.h>
 #include	<strings.h>
 
-#include 	"cJSON.h"
+#include 	"cJSON.h" 
+#include	"wrappers.h"
+#include	"scLogger.h"
 //#include 	<wiringPi.h>
 
 #define		UNIXSOCKET_PATH "/tmp/paunix.str"
@@ -35,71 +37,8 @@ static int	read_cnt;
 static char	*read_ptr;
 static char	read_buf[MAXLINE];
 
-/* Error and log File handling */
-static void err_doit(int errnoflag, int level, const char *fmt, va_list ap)
-{
-	int		errno_save, n;
-	char	buf[MAXLINE + 1];
 
-	errno_save = errno;		
-#ifdef	HAVE_VSNPRINTF // check is supported
-	vsnprintf(buf, MAXLINE, fmt, ap);	
-#else
-	vsprintf(buf, fmt, ap);				
-#endif
-	n = strlen(buf);
-	if (errnoflag)
-		snprintf(buf + n, MAXLINE - n, ": %s", strerror(errno_save));
-	strcat(buf, "\n");
-	syslog(level,"%s", buf);
-	return;
-}
-void err_sys(const char *fmt, ...) {
-	va_list		ap;
 
-	va_start(ap, fmt);
-	err_doit(1, LOG_ERR, fmt, ap);
-	va_end(ap);
-	exit(1);
-}
-void sig_chld(int signo) {
-	pid_t	pid;
-	int		stat;
-
-	while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0)
-		printf("child %d terminated\n", pid);
-	return;
-}
-
-/* Wrappers for error handling */
-void uBind(int fd, const struct sockaddr *sa, socklen_t salen) {
-	if (bind(fd, sa, salen) < 0)
-		err_sys("bind error");
-}
-int uSocket(int fam, int type, int proto) {
-	int	n;
-	if ( (n = socket(fam, type, proto)) < 0)
-		err_sys("socket error");
-	return(n);
-}
-void uListen(int fd, int backlog) {
-	char	*ptr;
-	if ( (ptr = getenv("LISTENQUEUE")) != NULL)
-		backlog = atoi(ptr);
-	if (listen(fd, backlog) < 0)
-		err_sys("listen error");
-}
-pid_t uFork(void) {
-	pid_t	pid;
-
-	if ( (pid = fork()) == -1)
-		err_sys("fork error");
-	return(pid);
-}
-void uClose(int fd) {
-	if (close(fd) == -1)
-		err_sys("close error");
-}
 
 /* Socket I/O functions */
 ssize_t	uWrite(int fd, const void *vptr, size_t n) {
@@ -121,7 +60,7 @@ ssize_t	uWrite(int fd, const void *vptr, size_t n) {
 		ptr   += nwritten;
 	}
 	if (nwritten != n)
-		err_sys("write error");
+		err_log("write error");
 	return(n);
 }
 static ssize_t my_read(int fd, char *ptr) {
@@ -169,7 +108,7 @@ ssize_t Readline(int fd, void *ptr, size_t maxlen) {
 	ssize_t		n;
 
 	if ( (n = readline(fd, ptr, maxlen)) < 0)
-		err_sys("readline error");
+		err_log("readline error");
 	return(n);
 }
 void str_echo(int sockfd) {
@@ -194,18 +133,16 @@ int main(int argc, char **argv) {
 	struct sockaddr_un	cliaddr, servaddr;
 	void				sig_chld(int);
 
-	listenfd = uSocket(AF_LOCAL, SOCK_STREAM, 0);
+	listenfd = wrap_socket(AF_LOCAL, SOCK_STREAM, 0);
 
 	unlink(UNIXSOCKET_PATH);
 	bzero(&servaddr, sizeof(servaddr));
 	servaddr.sun_family = AF_LOCAL;
 	strcpy(servaddr.sun_path, UNIXSOCKET_PATH);
 
-	uBind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+	wrap_bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
 
-	uListen(listenfd, LISTENQUEUE);
-
-	signal(SIGCHLD, sig_chld);
+	wrap_listen(listenfd, LISTENQUEUE);
 
 	for ( ; ; ) {
 		clilen = sizeof(cliaddr);
@@ -213,14 +150,14 @@ int main(int argc, char **argv) {
 			if (errno == EINTR)
 				continue;
 			else
-				err_sys("accept error");
+				err_log("accept error");
 		}
 
-		if ( (childpid = uFork()) == 0) {	
-			uClose(listenfd);	
+		if ( (childpid = wrap_fork()) == 0) {	
+			wrap_close(listenfd);	
 			str_echo(connfd);	/* process request */
 			exit(0);
 		}
-		uClose(connfd);			/* parent closes connected socket */
+		wrap_close(connfd);			/* parent closes connected socket */
 	}
 }
