@@ -14,8 +14,8 @@
 #include 	<unistd.h>
 #include	<strings.h>
 
-#include	"wrappers.h"
-#include	"scLogger.h"	
+#include	"scLogger.h"
+#include	"wrappers.h"	
 
 
 /*Generic Functions*/
@@ -35,6 +35,10 @@ void wrap_close(int fd) {
 void wrap_bind(int fd, const struct sockaddr *sa, socklen_t salen) {
 	if (bind(fd, sa, salen) < 0)
 		err_log("bind error");
+}
+void wrap_connect(int fd, const struct sockaddr *sa, socklen_t salen) {
+	if (connect(fd, sa, salen) < 0)
+		err_log("connect error");
 }
 int wrap_socket(int fam, int type, int proto) {
 	int	n;

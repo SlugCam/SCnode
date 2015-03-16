@@ -25,11 +25,12 @@ typedef struct paRequest {
 /* Unix Domain Socket handling functions */
 ssize_t	wrap_write(int fd, const void *vptr, size_t n);
 ssize_t readline(int fd, void *vptr, size_t maxlen);
-ssize_t Readline(int fd, void *ptr, size_t maxlen) ;
+ssize_t wrap_readline(int fd, void *ptr, size_t maxlen);
 void read_request(int sockfd) ;
 
 /* Request handling functions */
-int parseRequest( const void *vptr, size_t n);
+int build_response(paRequest *curr_request, char *vptr_response);
+int parse_request(paRequest *curr_request, const void *vptr_request);
 
 
 #endif

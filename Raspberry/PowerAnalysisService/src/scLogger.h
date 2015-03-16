@@ -11,8 +11,8 @@
 
 
 #define		MAXLINE		4096	/* max text line length */
+#define		TIMESIZE	256		/* size of time string */
 
-static void multiarg_log(int errnoflag, int level, const char *fmt, va_list ap);
 
 /* Different logging functions for each level, ordered by severity */
 void emerg_log(const char *fmt, ...);

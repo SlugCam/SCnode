@@ -35,8 +35,6 @@
 #endif		
 
 
-
-/* Socket I/O functions */
 ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	size_t		nleft;
 	ssize_t		nwritten;
@@ -59,23 +57,94 @@ ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 		err_log("write error");
 	return(n);
 }
-int parseRequest( const void *vptr, size_t n){
-	const char	*ptr;
-	cJSON 		*root;
-	paRequest 	*curr_request;
 
-	ptr = vptr;
-	if ( (root = cJSON_Parse(ptr)) == 0){
+/* Builds JSON response according to paRequest contents */
+int build_response(paRequest *curr_request, char *ptr_response){
+	cJSON 			*root, *data;
+	time_t 			timegen;
+	struct tm 		*loctime;
+	char 			*timestr;
+
+	root = cJSON_CreateObject();  
+	cJSON_AddStringToObject(root, "type", "message");
+	cJSON_AddItemToObject(root, "data", data = cJSON_CreateObject());
+
+	if (strcmp(curr_request->type, "status-request") == 0) {
+		if (strcmp(curr_request->data, "battery") == 0)
+		{
+			cJSON_AddStringToObject(data, "type", "battery");
+			//call function here to read GPIO, but for now fake value
+			cJSON_AddStringToObject(data, "battery", "charging");	
+		} else if (strcmp(curr_request->data, "consumption") == 0) {
+			cJSON_AddStringToObject(data, "type", "consumption");
+			//call function here to read current sensor, but for now fake value
+			cJSON_AddStringToObject(data, "avgCurrent", "467");
+		} else if (strcmp(curr_request->data, "remain") == 0) {
+			cJSON_AddStringToObject(data, "type", "remainingTime");
+			//call function here to read remaining time left on current battery charge
+			cJSON_AddStringToObject(data, "remainingTime", "124009");
+		} else {
+			cJSON_AddStringToObject(data, "type", "error");
+			cJSON_AddStringToObject(data, "message", "Requested status type not recognized.");
+			warn_log("Recieved unkown status request type.");
+		}
+
+		timegen = time(NULL);
+		loctime = localtime (&timegen);
+		timestr = asctime (loctime);
+		cJSON_AddStringToObject(data, "timeGenerated", timestr);
+		strcpy(ptr_response,cJSON_Print(root));
+		cJSON_Delete(root);
+		return 1;
+		
+	}else{
+		cJSON_AddStringToObject(data, "type", "error");
+		cJSON_AddStringToObject(data, "message", "Request type not recognized.");
+		warn_log("Recieved unkown request type.");
+		
+		timegen = time(NULL);
+		loctime = localtime (&timegen);
+		timestr = asctime (loctime);
+		cJSON_AddStringToObject(data, "timeGenerated", timestr);
+		strcpy(ptr_response,cJSON_Print(root));
+		cJSON_Delete(root);
+		return 1;
+	}
+
+	cJSON_Delete(root);
+	return -1;
+
+}
+
+/* Parses JSON request from request string and creates paRequest struct */
+int parse_request(paRequest *curr_request, const void *vptr_request){
+	const char		*ptr;
+	cJSON 			*root;
+
+	ptr = vptr_request;
+	root = cJSON_Parse(ptr);
+
+	if (!root){
+		printf("Error before: [%s]\n",cJSON_GetErrorPtr());
+		cJSON_Delete(root);
 		return -1;
 	}else{
-		curr_request->type= cJSON_GetObjectItem(root,"type")->valuestring;
-		curr_request->data= cJSON_GetObjectItem(root,"data")->valuestring;
-		curr_request->timercvd= time(&curr_request->timercvd);
+		debug_log("Request recieved.");
+		debug_log(cJSON_Print(root));
+		curr_request->type = malloc(sizeof(char)*10);
+		strcpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring);
+		curr_request->data = malloc(sizeof(char)*10);
+		strcpy(curr_request->data, cJSON_GetObjectItem(root,"data")->valuestring);
+		curr_request->timercvd = time(NULL);
 	}
+	cJSON_Delete(root);
 	return 1;
 
 }
-static ssize_t readBytes(int fd, char *ptr) {
+
+/* Function that reads from a socket byte stream follows format from text:
+   "Unix Network Programing" by W. Richard Stevens */
+static ssize_t read_bytes(int fd, char *ptr) {
 	static int	read_cnt;
 	static char	*read_ptr;
 	static char	read_buf[MAXLINE];
@@ -95,14 +164,16 @@ again:
 	*ptr = *read_ptr++;
 	return(1);
 }
+
+/* function that fills request string buffer with bytes from socket stream */
 ssize_t readline(int fd, void *vptr, size_t maxlen) {
 	ssize_t	n, rc;
 	char	c, *ptr;
 	ptr = vptr;
 	for (n = 1; n < maxlen; n++) {
-		if ( (rc = readBytes(fd, &c)) == 1) {
+		if ( (rc = read_bytes(fd, &c)) == 1) {
 			*ptr++ = c;
-			if (c == '\n')
+			if (c == '\r')
 				break;	
 		} else if (rc == 0) {
 			*ptr = 0;
@@ -114,34 +185,46 @@ ssize_t readline(int fd, void *vptr, size_t maxlen) {
 	*ptr = 0;	
 	return(n);
 }
-ssize_t Readline(int fd, void *ptr, size_t maxlen) {
+
+/* readline function wrapper to catch errors  */
+ssize_t wrap_readline(int fd, void *ptr, size_t maxlen) {
 	ssize_t		n;
 
 	if ( (n = readline(fd, ptr, maxlen)) < 0)
 		err_log("readline error");
 	return(n);
 }
+
+/* function that handles request from socket stream*/
 void read_request(int sockfd) {
     ssize_t     n;
     char        request[MAXLINE];
- 
-    while(1) {
-        if ( (n = Readline(sockfd, request, MAXLINE)) == 0)
-            return;  /* No rquest was recieved */
- 		
-        if (parseRequest(request, MAXLINE) < 0){
-			warn_log("Nothing Parsed, Incorrect JSON format");
-			return;
-		}
-
-		//TODO: MAKE JSON RESPONSE AND SEND IT BACK
-        //wrap_write(sockfd, request, n);
+    char		response[MAXLINE];
+    paRequest 	par;
+ 	
+    if ( (n = wrap_readline(sockfd, request, MAXLINE)) == 0){
+    	debug_log("Finished reading bytes from stream.");
+        return; 
     }
+    if (parse_request(&par, request) < 0){
+		warn_log("Nothing Parsed, incorrect JSON format.");
+		return;
+	}
+	if (build_response(&par, response) < 0){
+		warn_log("Couldn't build JSON response.");
+		return;
+	}
+
+	n = strlen(response);
+	if (wrap_write(sockfd, response, n) < 0){
+		debug_log("Unable to send response.");
+	}
+
 }
 
 
 /* Structure follows format found in the text:
-   "Unix Network Programming" by W. Richard Stevens */
+   "Unix Network Programing" by W. Richard Stevens */
 int main(int argc, char **argv) {
 	int					listenfd, connfd;
 	pid_t				childpid;

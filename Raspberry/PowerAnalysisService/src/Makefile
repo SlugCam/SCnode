@@ -1,10 +1,13 @@
 #Makefile for PowerAnalysis-daemon
+INCLUDE = cJSON.h wrappers.h scLogger.h
+LIBFILES = cJSON.c wrappers.c scLogger.c 
+FLAGS = -Wall -Wstrict-prototypes -Wwrite-strings
 
-daemon: PowerAnalysis-daemon.h cJSON.h wrappers.h scLogger.h
-	gcc -o PowerAnalysis-daemon cJSON.c PowerAnalysis-daemon.c wrappers.c scLogger.c #-lwiringPi
+daemon: $(INCLUDE) PowerAnalysis-daemon.h 
+	gcc -o PowerAnalysis-daemon PowerAnalysis-daemon.c $(LIBFILES) $(FLAGS) #-lwiringPi
 
-testClient:
-	gcc -o PowerAnalysis-daemon-testClient PowerAnalysis-daemon-testClient.c
+testClient: $(INCLUDE)
+	gcc -o PowerAnalysis-daemon-testClient PowerAnalysis-daemon-testClient.c $(LIBFILES) $(FLAGS)
 
 install:
 	mv PowerAnalysis-daemon /usr/lib/SC-daemons/
