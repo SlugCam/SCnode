@@ -58,12 +58,64 @@ ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	return(n);
 }
 
+int getBatteryStatus(char *status){
+	if (wiringPiSetup() == -1){
+    	warn_log("Couldn't setup WiringPi Library");
+    	return -1;
+    }
+
+    pinMode (DONEPIN,INPUT);
+    pullUpDnControl (DONEPIN, PUD_UP);
+    pinMode (CHRGPIN,INPUT);
+    pullUpDnControl (CHRGPIN, PUD_UP);
+    pinMode (PGOODPIN,INPUT);
+    pullUpDnControl (CHRGPIN, PUD_UP);
+
+    /*
+    * Determine battery status From Adafruit's LiPo Charger:
+    *	D 	C 	PG 		Satus:
+    *   1   0   0 		Battery Charging Complete
+    *   1   1   0 		No Battery Present
+    *   1 	1 	1 		No Input Power Present
+    * 	0 	0 	0 		Temperature/Timer Fault
+    *   0	1 	0 		Charging (constant Voltage/Current)
+    * 	0 	1 	1    	Low Battery 
+    *
+    */
+
+    if (digitalRead(DONEPIN) == 1){
+    	if (digitalRead(CHRGPIN) == 0){
+    		strcpy(status, "Battery Charging Complete.");
+    	} else {
+    		if (digitalRead(PGOODPIN) == 0){
+    			strcpy(status, "No Battery Present.");
+    		} else {
+    			strcpy(status, "No Input Power Present.");
+    		}
+    	}
+    } else {
+    	if (digitalRead(CHRGPIN) == 0){
+    		strcpy(status, "Temperature/Timer Fault.");
+    	} else {
+    		if (digitalRead(CHRGPIN) == 0){
+    			strcpy(status, "Charging.");
+    		} else {
+    			strcpy(status, "Low Battery.");
+    		}
+
+    	}
+    }
+
+
+    return 1;	
+}
+
 /* Builds JSON response according to paRequest contents */
 int build_response(paRequest *curr_request, char *ptr_response){
 	cJSON 			*root, *data;
 	time_t 			timegen;
 	struct tm 		*loctime;
-	char 			*timestr;
+	char 			*timestr, *batstatus;
 
 	root = cJSON_CreateObject();  
 	cJSON_AddStringToObject(root, "type", "message");
@@ -73,8 +125,10 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		if (strcmp(curr_request->data, "battery") == 0)
 		{
 			cJSON_AddStringToObject(data, "type", "battery");
-			//call function here to read GPIO, but for now fake value
-			cJSON_AddStringToObject(data, "battery", "charging");	
+			batstatus = malloc(sizeof(char)*10);
+			getBatteryStatus(batstatus);
+			cJSON_AddStringToObject(data, "battery", batstatus);
+			free(batstatus);	
 		} else if (strcmp(curr_request->data, "consumption") == 0) {
 			cJSON_AddStringToObject(data, "type", "consumption");
 			//call function here to read current sensor, but for now fake value
@@ -129,8 +183,7 @@ int parse_request(paRequest *curr_request, const void *vptr_request){
 		cJSON_Delete(root);
 		return -1;
 	}else{
-		debug_log("Request recieved.");
-		debug_log(cJSON_Print(root));
+		debug_log("Request recieved:%s\n",cJSON_Print(root));
 		curr_request->type = malloc(sizeof(char)*10);
 		strcpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring);
 		curr_request->data = malloc(sizeof(char)*10);
