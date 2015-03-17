@@ -20,7 +20,7 @@
 #include	<errno.h>
 #include 	<signal.h>
 #include	<syslog.h>
-#include	<strings.h>
+#include	<string.h>
 #include	<time.h>
 
 #include 	"cJSON.h" 
@@ -59,7 +59,7 @@ ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 }
 
 int getBatteryStatus(char *status){
-	if (wiringPiSetup() == -1){
+	if (wiringPiSetupSys() == -1){
     	warn_log("Couldn't setup WiringPi Library");
     	return -1;
     }
@@ -74,8 +74,8 @@ int getBatteryStatus(char *status){
     /*
     * Determine battery status From Adafruit's LiPo Charger:
     *	D 	C 	PG 		Satus:
-    *   1   0   0 		Battery Charging Complete
-    *   1   1   0 		No Battery Present
+    *   1   	0   	0 		Battery Charging Complete
+    *   1	1	0 		No Battery Present
     *   1 	1 	1 		No Input Power Present
     * 	0 	0 	0 		Temperature/Timer Fault
     *   0	1 	0 		Charging (constant Voltage/Current)
@@ -95,7 +95,7 @@ int getBatteryStatus(char *status){
     	}
     } else {
     	if (digitalRead(CHRGPIN) == 0){
-    		strcpy(status, "Temperature/Timer Fault.");
+    		strcpy(status, "Temp/Timer Fault.");
     	} else {
     		if (digitalRead(CHRGPIN) == 0){
     			strcpy(status, "Charging.");
@@ -125,7 +125,7 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		if (strcmp(curr_request->data, "battery") == 0)
 		{
 			cJSON_AddStringToObject(data, "type", "battery");
-			batstatus = malloc(sizeof(char)*10);
+			batstatus = (char *)malloc(sizeof(char)*20);
 			getBatteryStatus(batstatus);
 			cJSON_AddStringToObject(data, "battery", batstatus);
 			free(batstatus);	

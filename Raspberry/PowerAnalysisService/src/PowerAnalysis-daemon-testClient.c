@@ -102,7 +102,7 @@ ssize_t wrap_readline(int fd, void *ptr, size_t maxlen) {
 
 void sendJSON(FILE *fp, int sockfd) {
 	char	sendline[MAXLINE], recvline[MAXLINE];
-	char	testJSON[256] = "{\n\"type\": \"status-request\",\n \"data\": \"remain\"\n }\r";
+	char	testJSON[256] = "{\n\"type\": \"status-request\",\n \"data\": \"battery\"\n }\r";
 
 	strcpy(sendline, testJSON);
 
