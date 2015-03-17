@@ -30,6 +30,15 @@ void wrap_close(int fd) {
 	if (close(fd) == -1)
 		err_log("close error");
 }
+char *wrap_strncpy( char *dest, const char *src, size_t count){
+	int len;
+	strncpy(dest, src, count);
+	len = strlen(dest);
+	if (dest[len-1] != '\0'){
+		dest[len-1] = '\0';
+	}
+	return dest;
+}
 
 /* Socket Functions */
 void wrap_bind(int fd, const struct sockaddr *sa, socklen_t salen) {

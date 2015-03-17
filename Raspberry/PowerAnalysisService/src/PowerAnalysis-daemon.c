@@ -85,22 +85,22 @@ int getBatteryStatus(char *status){
 
     if (digitalRead(DONEPIN) == 1){
     	if (digitalRead(CHRGPIN) == 0){
-    		strcpy(status, "Battery Charging Complete.");
+    		wrap_strncpy(status, "Battery Charging Complete.", sizeof(status)-1);
     	} else {
     		if (digitalRead(PGOODPIN) == 0){
-    			strcpy(status, "No Battery Present.");
+    			wrap_strncpy(status, "No Battery Present.",sizeof(status)-1);
     		} else {
-    			strcpy(status, "No Input Power Present.");
+    			wrap_strncpy(status, "No Input Power Present.", sizeof(status)-1);
     		}
     	}
     } else {
     	if (digitalRead(CHRGPIN) == 0){
-    		strcpy(status, "Temperature/Timer Fault.");
+    		wrap_strncpy(status, "Temperature/Timer Fault.", sizeof(status)-1);
     	} else {
     		if (digitalRead(CHRGPIN) == 0){
-    			strcpy(status, "Charging.");
+    			wrap_strncpy(status, "Charging.", sizeof(status)-1);
     		} else {
-    			strcpy(status, "Low Battery.");
+    			wrap_strncpy(status, "Low Battery.", sizeof(status)-1);
     		}
 
     	}
@@ -125,7 +125,7 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		if (strcmp(curr_request->data, "battery") == 0)
 		{
 			cJSON_AddStringToObject(data, "type", "battery");
-			batstatus = malloc(sizeof(char)*10);
+			batstatus = (char *)malloc(sizeof(char)*30);
 			getBatteryStatus(batstatus);
 			cJSON_AddStringToObject(data, "battery", batstatus);
 			free(batstatus);	
@@ -147,7 +147,7 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		loctime = localtime (&timegen);
 		timestr = asctime (loctime);
 		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		strcpy(ptr_response,cJSON_Print(root));
+		wrap_strncpy(ptr_response,cJSON_Print(root),sizeof(ptr_response)-1);
 		cJSON_Delete(root);
 		return 1;
 		
@@ -160,14 +160,11 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		loctime = localtime (&timegen);
 		timestr = asctime (loctime);
 		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		strcpy(ptr_response,cJSON_Print(root));
+		ptr_response = (char *)malloc(sizeof(cJSON_Print(root)));
+		wrap_strncpy(ptr_response,cJSON_Print(root),sizeof(ptr_response)-1);
 		cJSON_Delete(root);
 		return 1;
 	}
-
-	cJSON_Delete(root);
-	return -1;
-
 }
 
 /* Parses JSON request from request string and creates paRequest struct */
@@ -184,10 +181,10 @@ int parse_request(paRequest *curr_request, const void *vptr_request){
 		return -1;
 	}else{
 		debug_log("Request recieved:%s\n",cJSON_Print(root));
-		curr_request->type = malloc(sizeof(char)*10);
-		strcpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring);
-		curr_request->data = malloc(sizeof(char)*10);
-		strcpy(curr_request->data, cJSON_GetObjectItem(root,"data")->valuestring);
+		curr_request->type = (char *)malloc(sizeof(cJSON_GetObjectItem(root,"type")->valuestring));
+		wrap_strncpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring,sizeof(curr_request->type)-1);
+		curr_request->data = (char *)malloc(sizeof(cJSON_GetObjectItem(root,"data")->valuestring));
+		wrap_strncpy(curr_request->data, cJSON_GetObjectItem(root,"data")->valuestring,sizeof(curr_request->data)-1);
 		curr_request->timercvd = time(NULL);
 	}
 	cJSON_Delete(root);
@@ -268,10 +265,15 @@ void read_request(int sockfd) {
 		return;
 	}
 
+	//Free allocated memory for request struct
+	free(par->type);
+	free(par->data);
+	
 	n = strlen(response);
 	if (wrap_write(sockfd, response, n) < 0){
 		debug_log("Unable to send response.");
 	}
+	free(response);
 
 }
 
