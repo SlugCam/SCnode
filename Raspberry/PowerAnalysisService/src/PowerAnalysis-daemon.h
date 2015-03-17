@@ -14,9 +14,9 @@
 #define		MAXLINE			4096	/* Max text line length */
 #define 	LISTENQUEUE		1024	/* Number of queued requests, default may be too small */
 #define		SA				struct sockaddr		/* For ease */
-#define		DONEPIN			0		/* Lipo charger Done status pin on PI GPIO 17 */
-#define		CHRGPIN			2		/* Lipo charger Charging status pin on PI GPIO 27 */
-#define		PGOODPIN		3		/* Lipo charger Power Good status pin on PI GPIO 22 */
+#define		DONEPIN			17		/* Lipo charger Done status pin on PI GPIO 17 */
+#define		CHRGPIN			27		/* Lipo charger Charging status pin on PI GPIO 27 */
+#define		PGOODPIN		22		/* Lipo charger Power Good status pin on PI GPIO 22 */
 
 /* The Power Analysis request struct */
 typedef struct paRequest {
