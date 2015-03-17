@@ -27,7 +27,7 @@
 #include	"wrappers.h"
 #include	"scLogger.h"
 #include	"PowerAnalysis-daemon.h"
-//#include 	<wiringPi.h>
+#include 	<wiringPi.h>
 
 
 #ifndef	AF_LOCAL

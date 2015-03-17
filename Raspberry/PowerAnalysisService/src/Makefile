@@ -4,7 +4,7 @@ LIBFILES = cJSON.c wrappers.c scLogger.c
 FLAGS = -Wall -Wstrict-prototypes -Wwrite-strings
 
 daemon: $(INCLUDE) PowerAnalysis-daemon.h 
-	gcc -o PowerAnalysis-daemon PowerAnalysis-daemon.c $(LIBFILES) $(FLAGS) #-lwiringPi
+	gcc -o PowerAnalysis-daemon PowerAnalysis-daemon.c $(LIBFILES) $(FLAGS) -I/usr/local/include -L/usr/local/lib -lwiringPi
 
 testClient: $(INCLUDE)
 	gcc -o PowerAnalysis-daemon-testClient PowerAnalysis-daemon-testClient.c $(LIBFILES) $(FLAGS)
