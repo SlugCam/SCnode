@@ -58,10 +58,10 @@ ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	return(n);
 }
 
-int getBatteryStatus(char *status){
+const char  *getBatteryStatus(){
 	if (wiringPiSetupSys() == -1){
     	warn_log("Couldn't setup WiringPi Library");
-    	return -1;
+    	return "ERROR with WiringPi";
     }
 
     pinMode (DONEPIN,INPUT);
@@ -82,32 +82,31 @@ int getBatteryStatus(char *status){
     * 	0 	1 	1    	Low Battery 
     *
     */
-
     if (digitalRead(DONEPIN) == 1){
     	if (digitalRead(CHRGPIN) == 0){
-    		wrap_strncpy(status, "Battery Charging Complete.", sizeof(status)-1);
+    		return "Battery Charging Complete.";
     	} else {
     		if (digitalRead(PGOODPIN) == 0){
-    			wrap_strncpy(status, "No Battery Present.",sizeof(status)-1);
+    			return "No Battery Present.";
     		} else {
-    			wrap_strncpy(status, "No Input Power Present.", sizeof(status)-1);
+    			return "No Input Power Present.";
     		}
     	}
     } else {
     	if (digitalRead(CHRGPIN) == 0){
-    		wrap_strncpy(status, "Temperature/Timer Fault.", sizeof(status)-1);
+    		return "Temperature/Timer Fault.";
     	} else {
     		if (digitalRead(CHRGPIN) == 0){
-    			wrap_strncpy(status, "Charging.", sizeof(status)-1);
+    			return "Charging.";
     		} else {
-    			wrap_strncpy(status, "Low Battery.", sizeof(status)-1);
+    			return "Low Battery.";
     		}
 
     	}
     }
 
 
-    return 1;	
+    return "ERROR READING STATUS";	
 }
 
 /* Builds JSON response according to paRequest contents */
@@ -115,20 +114,16 @@ int build_response(paRequest *curr_request, char *ptr_response){
 	cJSON 			*root, *data;
 	time_t 			timegen;
 	struct tm 		*loctime;
-	char 			*timestr, *batstatus;
+	char 			*timestr,*jsonPrint;
 
 	root = cJSON_CreateObject();  
 	cJSON_AddStringToObject(root, "type", "message");
 	cJSON_AddItemToObject(root, "data", data = cJSON_CreateObject());
 
-	if (strcmp(curr_request->type, "status-request") == 0) {
-		if (strcmp(curr_request->data, "battery") == 0)
-		{
+	if (strcmp(curr_request->type, "status-request") == 0){
+		if (strcmp(curr_request->data, "battery") == 0){
 			cJSON_AddStringToObject(data, "type", "battery");
-			batstatus = (char *)malloc(sizeof(char)*30);
-			getBatteryStatus(batstatus);
-			cJSON_AddStringToObject(data, "battery", batstatus);
-			free(batstatus);	
+			cJSON_AddStringToObject(data, "battery", getBatteryStatus());
 		} else if (strcmp(curr_request->data, "consumption") == 0) {
 			cJSON_AddStringToObject(data, "type", "consumption");
 			//call function here to read current sensor, but for now fake value
@@ -147,7 +142,9 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		loctime = localtime (&timegen);
 		timestr = asctime (loctime);
 		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		wrap_strncpy(ptr_response,cJSON_Print(root),sizeof(ptr_response)-1);
+		jsonPrint = cJSON_Print(root);
+		strcpy(ptr_response,jsonPrint);
+		free(jsonPrint);
 		cJSON_Delete(root);
 		return 1;
 		
@@ -160,8 +157,9 @@ int build_response(paRequest *curr_request, char *ptr_response){
 		loctime = localtime (&timegen);
 		timestr = asctime (loctime);
 		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		ptr_response = (char *)malloc(sizeof(cJSON_Print(root)));
-		wrap_strncpy(ptr_response,cJSON_Print(root),sizeof(ptr_response)-1);
+		jsonPrint = cJSON_Print(root);
+		strcpy(ptr_response,jsonPrint);
+		free(jsonPrint);
 		cJSON_Delete(root);
 		return 1;
 	}
@@ -171,7 +169,8 @@ int build_response(paRequest *curr_request, char *ptr_response){
 int parse_request(paRequest *curr_request, const void *vptr_request){
 	const char		*ptr;
 	cJSON 			*root;
-
+	char			*jsonPrint;
+	
 	ptr = vptr_request;
 	root = cJSON_Parse(ptr);
 
@@ -180,11 +179,13 @@ int parse_request(paRequest *curr_request, const void *vptr_request){
 		cJSON_Delete(root);
 		return -1;
 	}else{
-		debug_log("Request recieved:%s\n",cJSON_Print(root));
-		curr_request->type = (char *)malloc(sizeof(cJSON_GetObjectItem(root,"type")->valuestring));
-		wrap_strncpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring,sizeof(curr_request->type)-1);
-		curr_request->data = (char *)malloc(sizeof(cJSON_GetObjectItem(root,"data")->valuestring));
-		wrap_strncpy(curr_request->data, cJSON_GetObjectItem(root,"data")->valuestring,sizeof(curr_request->data)-1);
+		jsonPrint = cJSON_Print(root);
+		debug_log("Request recieved:%s\n",jsonPrint);
+		free(jsonPrint);
+		curr_request->type = malloc(sizeof(char)*30);
+		strcpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring);
+		curr_request->data = malloc(sizeof(char)*30);
+		strcpy(curr_request->data, cJSON_GetObjectItem(root,"data")->valuestring);
 		curr_request->timercvd = time(NULL);
 	}
 	cJSON_Delete(root);
@@ -256,6 +257,7 @@ void read_request(int sockfd) {
     	debug_log("Finished reading bytes from stream.");
         return; 
     }
+
     if (parse_request(&par, request) < 0){
 		warn_log("Nothing Parsed, incorrect JSON format.");
 		return;
@@ -266,14 +268,13 @@ void read_request(int sockfd) {
 	}
 
 	//Free allocated memory for request struct
-	free(par->type);
-	free(par->data);
+	free(par.type);
+	free(par.data);
 	
 	n = strlen(response);
 	if (wrap_write(sockfd, response, n) < 0){
 		debug_log("Unable to send response.");
 	}
-	free(response);
 
 }
 

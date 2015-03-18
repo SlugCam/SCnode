@@ -34,8 +34,9 @@ char *wrap_strncpy( char *dest, const char *src, size_t count){
 	int len;
 	strncpy(dest, src, count);
 	len = strlen(dest);
-	if (dest[len-1] != '\0'){
-		dest[len-1] = '\0';
+	printf("dest length:%d",len);
+	if (dest[len] != '\0'){
+		dest[len] = '\0';
 	}
 	return dest;
 }

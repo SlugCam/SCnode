@@ -25,6 +25,9 @@ typedef struct paRequest {
 	char *data;				/* What data is being requested */
 } paRequest;
 
+/* Daemon related functions*/
+const char *getBatteryStatus(void);
+
 /* Unix Domain Socket handling functions */
 ssize_t	wrap_write(int fd, const void *vptr, size_t n);
 ssize_t readline(int fd, void *vptr, size_t maxlen);

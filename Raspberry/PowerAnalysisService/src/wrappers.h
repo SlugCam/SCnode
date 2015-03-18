@@ -14,6 +14,7 @@
 pid_t wrap_fork(void);
 void wrap_close(int fd);
 void wrap_waitpid(void);
+char *wrap_strncpy( char *dest, const char *src, size_t count);
 
 /* Socket Related Functions */
 void wrap_connect(int fd, const struct sockaddr *sa, socklen_t salen);

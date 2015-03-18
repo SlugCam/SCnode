@@ -7,10 +7,10 @@ daemon: $(INCLUDE) PowerAnalysis-daemon.h
 	gcc -o PowerAnalysis-daemon PowerAnalysis-daemon.c $(LIBFILES) $(FLAGS) 
 
 testClient: $(INCLUDE)
-	gcc -o PowerAnalysis-daemon-testClient PowerAnalysis-daemon-testClient.c $(LIBFILES) $(FLAGS)
+	gcc -o PowerAnalysis-daemon-testClient.o PowerAnalysis-daemon-testClient.c $(LIBFILES) $(FLAGS)
 
 install:
 	mv PowerAnalysis-daemon /usr/lib/SC-daemons/
 
 clean:
-	rm PowerAnalysis-daemon
+	rm -f PowerAnalysis-daemon *.o
