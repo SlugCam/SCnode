@@ -5,11 +5,8 @@ Documentation=https://github.com/SlugCam/SCnode/tree/master/Raspberry/PowerAnaly
 #After=SCmanagement.service
 
 [Service]
-#Need to set it to type forking for daemons.
-Type=forking
+Type=simple
 ExecStart=/usr/lib/SC-daemons/PowerAnalysis-daemon
-StandardOutput=inheirit
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

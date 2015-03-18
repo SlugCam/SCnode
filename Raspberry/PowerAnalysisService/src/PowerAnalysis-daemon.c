@@ -73,36 +73,27 @@ const char  *getBatteryStatus(){
 
     /*
     * Determine battery status From Adafruit's LiPo Charger:
-    *	D 	C 	PG 		Satus:
-    *   1   	0   	0 		Battery Charging Complete
-    *   1	1	0 		No Battery Present
-    *   1 	1 	1 		No Input Power Present
-    * 	0 	0 	0 		Temperature/Timer Fault
-    *   0	1 	0 		Charging (constant Voltage/Current)
-    * 	0 	1 	1    	Low Battery 
+    *	D 	C 	Satus:
+    *   0   	1    	Battery Charging Complete
+    *   0 	0 	No Input Power Present
+    * 	1 	1  	Temperature/Timer Fault
+    *   1	0 	Charging (Or low battery, check previous state) 
     *
     */
     if (digitalRead(DONEPIN) == 1){
     	if (digitalRead(CHRGPIN) == 0){
-    		return "Battery Charging Complete.";
+    		return "Battery is Charging.";
+                //TODO: Add Check for Low Battery, need to know previous state and light conditions
+                //return "Low Battery.";
     	} else {
-    		if (digitalRead(PGOODPIN) == 0){
-    			return "No Battery Present.";
-    		} else {
-    			return "No Input Power Present.";
-    		}
+    		return "Temperature/Timer Fault.";
     	}
     } else {
-    	if (digitalRead(CHRGPIN) == 0){
-    		return "Temperature/Timer Fault.";
+    	if (digitalRead(CHRGPIN) == 1){
+    		return "Battery Charging Complete.";
     	} else {
-    		if (digitalRead(CHRGPIN) == 0){
-    			return "Charging.";
-    		} else {
-    			return "Low Battery.";
-    		}
-
-    	}
+    		return "Battery in use.";
+	}
     }
 
 
