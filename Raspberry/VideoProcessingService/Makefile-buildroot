@@ -4,31 +4,34 @@ BIN=mydemo.bin mydemotagging.bin
 
 LDFLAGS+=-lvgfont -lfreetype -lz
 
+TOOLCHAIN_DIR=../SlugcamBuildrootImage/toolchain
+
 BIN_DIR=/bin
 
 CC=${BIN_DIR}/gcc
 CXX=${BIN_DIR}/g++
 LD=${BIN_DIR}/ld
 
-CFLAGS= -Wall -I "/usr/include" \
-              -I "/opt/vc/include" \
-			  -I "/usr/include/wiringPi" \
-			  -I "/opt/include/interface/vmcs_host/linux" \
-			  -I "/opt/vc/src/hello_pi/libs/ilclient" \
-			  -I "/opt/vc/src/hello_pi/libs/vgfont" \
-			  -I "/opt/vc/include/interface/vcos" \
-			  -I "/opt/vc/include/interface/vmcs_host/linux" \
-			  -I "/opt/vc/include/interface/vcos/pthreads"
+BUILDROOT_STAGING_DIR=${TOOLCHAIN_DIR}/staging
+BUILDROOT_TARGET_DIR=${TOOLCHAIN_DIR}/target
 
-LDFLAGS=      -L "/opt/vc/lib" \
-              -L "/usr/lib" \
-              -L "/lib" \
-              -L "/opt/vc/lib" \
-              -L "/usr/lib" \
-              -L "/lib" \
-			  -L "/opt/vc/src/hello_pi/libs/ilclient" \
-			  -L "/opt/vc/src/hello_pi/libs/vgfont" \
-			  
+CFLAGS= -Wall -I "$(BUILDROOT_STAGING_DIR)/usr/include" \
+              -I "$(BUILDROOT_STAGING_DIR)/opt/vc/include" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/include/wiringPi" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/include/interface/vmcs_host/linux" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/src/hello_pi/libs/ilclient" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/src/hello_pi/libs/vgfont" \
+			  -I "$(BUILDROOT_STAGING_DIR)/usr/include/interface/vcos/pthreads"
+
+LDFLAGS=      -L "$(BUILDROOT_STAGING_DIR)/opt/vc/lib" \
+              -L "$(BUILDROOT_STAGING_DIR)/usr/lib" \
+              -L "$(BUILDROOT_STAGING_DIR)/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/opt/vc/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/usr/lib" \
+              -L "$(BUILDROOT_TARGET_DIR)/lib" \
+			  -L "$(BUILDROOT_STAGING_DIR)/usr/src/hello_pi/libs/ilclient" \
+			  -L "$(BUILDROOT_STAGING_DIR)/usr/src/hello_pi/libs/vgfont" \
+			  -L "$(TOOLCHAIN_DIR)/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/lib"
 
 
 

@@ -125,7 +125,7 @@ static void default_status(RASPIVID_STATE *state)
     state->framerate = VIDEO_FRAME_RATE_NUM;
     state->intraperiod = 0;    // Not set
     state->verbose = 0;    
-    state->demoMode = 0;
+    state->demoMode = 1;
     state->demoInterval = 250; // ms
 
     // Setup preview window defaults
@@ -574,7 +574,7 @@ int main(int argc, const char **argv)
                         string line="";
                         ifstream file;
 
-                        file.open("/slugcam/mydemo.conf");
+                        file.open("config");
                         if (!file.is_open())
                         {
                             cout<<"Error opening configuration file\n";
