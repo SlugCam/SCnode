@@ -71,6 +71,7 @@ typedef struct
     int opencv_width;                   			/// Size of the opencv image
     int opencv_height;				   				/// Size of the opencv image
     int maxLength;					   				/// Number of frames on each video
+    int maxFileSize;
     int consecutiveHumans;			   				/// Minimum number of consecutive humans detection to continue recording
     int consecutiveNoHumans;			   			/// Minimum number of consecutive frames without humans to stop recording
 
@@ -88,7 +89,8 @@ typedef struct
 typedef struct
 {
     string fileName;								/// File name
-    VideoWriter fileHandle;							/// File handle to write buffer data to.
+    VideoWriter fileHandle;
+// File Stat
     VideoWriter fileHandle2;						/// File handle to write buffer data to.
     RASPIVID_STATE *pstate;							/// pointer to our state in case required in callback
     int abort;										/// Set to 1 in callback if an error occurs to attempt to abort the capture
@@ -97,6 +99,7 @@ typedef struct
     int humanDetected;								/// Number of consecutive frames with human detected
     int noHumanDetected;							/// Number of consecutive frames without human
     int framesRecorded;								/// Number of frames recorded
+    int currentFileSize;
     bool uploading;									/// Control if any file is being uploaded.
     VCOS_SEMAPHORE_T complete_semaphore;			
 } PORT_USERDATA;
@@ -154,10 +157,14 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
 
     Mat py = Mat(Size(w, h), CV_8UC1);		// Y component of YUV I420 frame
 
+    fpos_t pos;
+    FILE *vid;
+
     mmal_buffer_header_mem_lock(buffer);
 
     memcpy(userdata->image.data, buffer->data, w * h);       // read Y
-
+        
+   // userdata->currentFileSize += *(userdata->image.refcount);
 
     userdata->framesRecorded++;
 
@@ -176,14 +183,15 @@ static void camera_control_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
         //cout<<"No humans for a while\n";
     }
     // Check if the video has reached the maximum length and open a new one
-    else if(userdata->framesRecorded >= pstate->maxLength)
+    else if(userdata->currentFileSize >= pstate->maxFileSize)
     {
         //userdata->fileName = to_string(rand()) + ".avi";
         //userdata->fileHandle.open(userdata->fileName, CV_FOURCC('D','I','V','X'), 3, userdata->image.size(), false);
-        //userdata->framesRecorded = 0;
-        //cout<<"Long enough to create a new file\n";
+        userdata->fileHandle.release();
+	//cout<< ("FileCompleted\n" + to_string(userdata->currentFileSize) + "\nMax:"+ to_string(pstate->maxFileSize));
+	exit(0);
     }
-
+    //cout << ("currsize:"+ to_string(userdata->currentFileSize));
 
     mmal_buffer_header_mem_unlock(buffer);
 
@@ -458,9 +466,9 @@ int main(int argc, const char **argv)
 
         //set up video file
         
-        callback_data.fileName = to_string(time(NULL)) + ".avi";
-        VideoWriter record("/slugcam/raw/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
-        VideoWriter record2("/slugcam/vids/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
+        callback_data.fileName = "100K_byte.avi";
+        VideoWriter record("raw/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, callback_data.image.size(), false);
+        VideoWriter record2("vids/"+callback_data.fileName, CV_FOURCC('D','I','V','X'), 2.5, Size(state.opencv_width, state.opencv_height), false);
         callback_data.fileHandle = record;
         callback_data.fileHandle2 = record2;
 
@@ -501,6 +509,7 @@ int main(int argc, const char **argv)
             callback_data.noHumanDetected = 0;
             callback_data.uploading = false;
             callback_data.framesRecorded = 0;
+	    callback_data.currentFileSize = 0;
 
             camera_video_port->userdata = (struct MMAL_PORT_USERDATA_T *)&callback_data;
 
@@ -549,7 +558,8 @@ int main(int argc, const char **argv)
             int dilate_n = 5;						//Number of Dialtes
             int erode_n = 1;						//Number of Erodes
             state.maxLength = 900;					//10 minutes of video approximately (seconds * 3)
-            state.consecutiveHumans = 1;
+	    state.maxFileSize = 256000;
+	    state.consecutiveHumans = 1;
             state.consecutiveNoHumans = 45;			//15 seconds without human on the scene (seconds * 3)
 
             //Variables of execution
@@ -656,7 +666,7 @@ int main(int argc, const char **argv)
                     for(int i=0;i < contours.size();i++)
                     {
                         double arc = arcLength(contours[i], true);
-                        cout<<arc<<"\n";
+                        //cout<<arc<<"\n";
                         if(arc > 100)
                         {
                             //Apply bounding box
@@ -671,7 +681,7 @@ int main(int argc, const char **argv)
                                         2
                                         );
                                 human++;
-                                cout<<"HUMANNNNNN";
+                                //cout<<"HUMANNNNNN";
                             }
                         }
                     }
@@ -682,7 +692,7 @@ int main(int argc, const char **argv)
                         callback_data.humanDetected++;
                         callback_data.noHumanDetected = 0;
 
-                        cout<<"Humans detected:"<<callback_data.humanDetected;
+                        //cout<<"Humans detected:"<<callback_data.humanDetected;
                     } 
                     //Add human not detect
                     else

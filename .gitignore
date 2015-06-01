@@ -3,3 +3,6 @@
 __MACOSX
 .DS_Store
 ._*
+
+Raspberry/VideoProcessingService/vids/*
+Raspberry/VideoProcessingService/raw/*
