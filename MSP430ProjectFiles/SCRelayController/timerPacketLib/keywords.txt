@@ -1,2 +1,0 @@
-TP		KEYWORD1
-parseMessage	KEYWORD2

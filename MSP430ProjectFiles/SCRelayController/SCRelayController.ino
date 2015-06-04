@@ -3,23 +3,42 @@
  
  Date: 2/22/2015
  Author: Kevin Abas
- Last Modified: 2/28/2015
+ Last Modified: 6/2/2015
  
- This program allows the MSP430 the ability to monitor the passive infared sensor for motion, and
- to power on the SlugCam system using a dual coil relay. SlugCam also uses the MSP430 to then
- keep the SlugCam system awake by using an MSP430 on board timer. SlugCam communicates how long
- it wishes to stay awake using serial SPI communication. Should motion be a nusence, SlugCam
- also has the ability to tell the MSP430 to ignore the motion interupts for a longer period of time.
+ This program allows the MSP430 the ability to monitor the passive 
+ infared sensor for motion, and to power on the SlugCam system using 
+ a dual coil relay. SlugCam also uses the MSP430 to then keep the SlugCam 
+ system awake by using an MSP430 on board timer(32Khz crystal). SlugCam 
+ communicates how long it wishes to stay awake using serial SPI 
+ communication. Should motion be a nusence, SlugCam also has the ability 
+ to tell the MSP430 to ignore the motion interupts for a longer period 
+ of time. Also using the msp430's available RTC clock library the msp430
+ can also act as the systems clock by monitoring and syncing it.
+ The MSP430 expects the following 10 byte packets when its slave select 
+ pin is active (note the \n is the deliminating LF):
  
- Circuit:
+     Set Time:
+         'T000000\n__' (T+hrs(__)+min(__)+sec(__)+\n__)
+     Set Date:
+         'D00000000\n' (D+yr(____)+mon(__)+day(__)+\n)
+     Set Sleep Countdown:
+         'S000000\n__' (S+hrs(__)+min(__)+sec(__)+\n__)
+     Special Commands:
+         'CON\n______' (C+remainOn(ON)+\n______)
+         'CDP0000\n__' (C+deepSleepMin(__)+deepSleepSec(__)+\n__)
+        
+     *NOTE: The Pi should replace the trailing _'s with 0's 
+ 
+ GPIO Config:
    PIR Sensor:
      DOUT: pin 11 (P2.3
      EN: pin 12 (P2.4)
    SPI:
-     MOSI: pin 15 (P1.7)
-     MISO: pin 14 (P1.6)
-     CE0: pin 6 (P1.4)
-     SCLK: pin 7 (P1.5)
+     MISO: pin 14 (P1.6) (UCB0SOMI)
+     MOSI: pin 15 (P1.7) (UCB0SIMO)
+     
+     CE0: pin 6 (P1.4) (Slave Select)
+     SCLK: pin 7 (P1.5)  (UCB0CLK)
      
    Relay:
      Set: pin 9 (P2.1)
@@ -27,51 +46,61 @@
  */
 #include <timerPacket.h>
 #include "msp430g2553.h"
+#include <string.h>
+#include <RTCplus.h> // Real-Time-Clock Library
 
-volatile int motionInteruptFlag = LOW;
-volatile int spiInteruptFlag = LOW;
-volatile int timerInteruptFlag = LOW;
-volatile unsigned int sleepTimerSeconds = 0;
-volatile unsigned int currentTimerSeconds = 0;
+//Interupt Service Routine Flags
+volatile int motion_interupt_flag  = LOW;
+volatile int spi_interupt_flag     = LOW;
+volatile int spi_error_flag        = LOW;
+volatile int timer_interupt_flag   = LOW;
+volatile int timer_running_flag    = LOW;
 
-const int spiChipEnablePin = 6;
-const int debugPin = 8;
-const int relaySetPin = 9;
-const int relayResetPin = 10;
-const int pirDoutPin = 11; 
-const int pirEnablePin = 12;
+//Protected Timer Values
+volatile unsigned int end_timer_seconds   = 99;
+volatile unsigned int end_timer_minutes   = 99;
+volatile unsigned int end_timer_hours     = 99;
 
+//Relay and PIR pins
+const int relay_set_pin   = 9;
+const int relay_reset_pin = 10;
+const int pir_dout_pin    = 11; 
+const int pir_enable_pin  = 12;
+
+//RTC Clock Data Structure
+RealTimeClock my_clock;
+
+//SPI RX Buffer Variables
+char SPI_RX_buff[13];
+char SPI_TX_Error[16] = "InvalidRequest\n";
+char SPI_RX_index = 0;
+char SPI_TX_index = 0;
+int  num_seconds, num_minutes, num_hours, 
+      num_year, num_month, num_day;
+char *rx_seconds, *rx_minutes, *rx_hours, 
+      *rx_year, *rx_month, *rx_day;
 
 /******************************
-    Configuration Function
+    Init Config Function
 ******************************/
 void setup() {
 
   // initialize the pins for I/O
-  pinMode(spiChipEnablePin, INPUT);
-  pinMode(relaySetPin, OUTPUT);
-  pinMode(relayResetPin, OUTPUT);
-  pinMode(pirDoutPin, INPUT);
-  pinMode(pirEnablePin, OUTPUT);
-  
-   pinMode(debugPin, OUTPUT);
+  pinMode(relay_set_pin, OUTPUT);
+  pinMode(relay_reset_pin, OUTPUT);
+  pinMode(pir_dout_pin, INPUT);
+  pinMode(pir_enable_pin, OUTPUT);
 
-  attachInterrupt(pirDoutPin, motionDetected, RISING);
-  //attachInterrupt(spiChipEnablePin, spiCommReady, RISING);
+  attachInterrupt(pir_dout_pin, motion_detected, RISING);
+  digitalWrite(pir_enable_pin, HIGH);
 
-  digitalWrite(debugPin, LOW);
-
-  disableWDT(); // Watch Dog Timer
-  configureACLK(); //sets up onboard 12KHz clock
-  sleepTimerSeconds = 5*(60*(60-3)); //set sleep time
-  configureTimer(); //setup Timer_A with starting coundown(seconds)
+  disable_wdt(); // Watch Dog Timer
   
-  //__enable_interrupt();
-  _BIS_SR(GIE);
+  setup_spi();
   
+  _BIS_SR(GIE); //Enable Global Interupts
+  my_clock.begin(); //Start RTC
   
-  // give SlugCam time to boot
-  //delay(1500);
 }
 
 
@@ -80,108 +109,208 @@ void setup() {
 ******************************/
 void loop() {
   
+  while (P1IN & BIT5);                   // If clock sig from mstr stays low,
+                                            // it is not yet in SPI mode
+  flash_spi_detected();                 // Blink 3 times
   
-  if(timerInteruptFlag == HIGH){
-    timerInteruptFlag = LOW; 
-    processTimerExpired();
-  }else if(spiInteruptFlag == HIGH){
-    processSPI();
-  }else if(motionInteruptFlag == HIGH){
-    motionInteruptFlag = LOW;  
-    processMotion();
-  }else if((motionInteruptFlag == LOW) && (spiInteruptFlag == LOW) &&
-                (timerInteruptFlag == LOW)){
-    //deep sleep  
+  if(timer_interupt_flag == HIGH){
+    process_timer_expired();
+    timer_interupt_flag = LOW; 
+  }else if(spi_interupt_flag == HIGH){  
+    process_spi();
+  }else if(motion_interupt_flag == HIGH){
+    motion_interupt_flag = LOW;  
+    process_motion();
+  }else if( (motion_interupt_flag == LOW) &&
+             (timer_interupt_flag == LOW) &&
+               (spi_interupt_flag == LOW) ){
+    __bis_SR_register(LPM3_bits + GIE);       // Enter LPM3, enable interrupts
   }
-  
+   
 }
 
 /******************************
   Interupt Handling Functions
 ******************************/
-void processMotion(){
+void process_motion(void){
   //If relay isn't on turn it on
-  if(digitalRead(relaySetPin) == LOW){
-       digitalWrite(relaySetPin, HIGH);
-       digitalWrite(relayResetPin, LOW);
-  }
-  digitalWrite(debugPin, HIGH);
-  currentTimerSeconds = 0;
-  
-}
-
-void processSPI(void){
-    //add SPI I/O  
-}
-
-void processTimerExpired(void){
-  //delay power off a few 3 more seconds
-  digitalWrite(debugPin, LOW);
-  //now turn off relay
-  if(digitalRead(relaySetPin) == HIGH){
-       digitalWrite(relaySetPin, LOW);
-       digitalWrite(relayResetPin, HIGH);
-  }
-  
  
+  if(digitalRead(relay_set_pin) == LOW){
+       timer_running_flag = HIGH;
+       digitalWrite(relay_set_pin, HIGH);
+       digitalWrite(relay_reset_pin, LOW);
+  }  
 }
 
+void process_spi(void){
+  //If relay isn't on turn it on
+  switch(SPI_RX_buff[0]){      
+     case 'T':
+       get_buffer_time();
+       my_clock.Set_Time(num_hours, num_minutes, num_seconds);
+     case  'D':
+       get_buffer_date();
+       my_clock.Set_Date(num_year, num_month, num_day);
+     case  'S':
+       get_buffer_time(); 
+       end_timer_seconds = (my_clock.RTC_sec + num_seconds ) % 60;
+       if( (end_timer_seconds <= 30 && ( num_seconds >= 30 || my_clock.RTC_sec >= 30 ) )
+            || ( num_seconds >= 30 && my_clock.RTC_sec >= 30 )){
+         end_timer_minutes = (my_clock.RTC_min + 1 + num_minutes) % 60;
+       }else{
+         end_timer_minutes = (my_clock.RTC_min + num_minutes) % 60;
+       }
+       if( (end_timer_minutes <= 30 && ( num_minutes >= 30 || my_clock.RTC_min >= 30 ) )
+            || ( num_minutes >= 30 && my_clock.RTC_min >= 30 )){
+         end_timer_hours = (my_clock.RTC_hr + 1 + num_hours) % 24;
+       }else{
+         end_timer_hours = (my_clock.RTC_hr + num_hours) % 24;
+       }
+       timer_running_flag    = HIGH;
+     case  'C':
+       break;
+     case  'H':
+       P1OUT = ~P1OUT;
+       spi_error_flag == HIGH;
+       //IE2 |= UCB0TXIE;
+     default:
+       break;
+     
+     
+    
+    }
+    SPI_RX_index = 0;
+    spi_interupt_flag = LOW;
+}
+
+void process_timer_expired(void){
+  //now turn off relay
+    P1OUT = ~P1OUT;
+   timer_interupt_flag = LOW;
+  if(digitalRead(relay_set_pin) == HIGH){
+       timer_running_flag = LOW;
+       digitalWrite(relay_set_pin, LOW);
+       digitalWrite(relay_reset_pin, HIGH);
+  }
+   end_timer_seconds   = 99;
+   end_timer_minutes   = 99;
+   end_timer_hours     = 99;
+}
 
 /******************************
     Interupt Service Routines
 ******************************/
 
-void motionDetected(void){
-  motionInteruptFlag = HIGH;
-}
-
-void spiCommReady(void){
-  spiInteruptFlag = HIGH;
-  
+void motion_detected(void){
+  motion_interupt_flag = HIGH;
 }
 
 //Using MSP430 native interupt notation
-#pragma vector=TIMER0_A0_VECTOR
-__interrupt void Timer_A (void)
+interrupt(TIMER1_A0_VECTOR) Tic_Tac(void) {
+    my_clock++;            // Update chunks
+    if( (my_clock.RTC_min >= end_timer_hours) && 
+          (my_clock.RTC_min >= end_timer_minutes) && 
+            (my_clock.RTC_sec >= end_timer_seconds) ){
+      timer_interupt_flag = HIGH;
+       __bic_status_register_on_exit(LPM3_bits);
+    } 
+}
+
+//MSP430 SPI RX Service Routine
+interrupt(USCIAB0RX_VECTOR)  USCI0RX_ISR (void)
 {
-  currentTimerSeconds ++; // a second has gone by
-  if(currentTimerSeconds == sleepTimerSeconds){
-    timerInteruptFlag = HIGH;
+  if(IFG2 & UCB0RXIFG){
+    char value = UCB0RXBUF;
+    if (value == '\n') { //ready to parse
+        spi_interupt_flag = HIGH;
+        __bic_status_register_on_exit(LPM3_bits);
+    } else {
+      SPI_RX_buff[SPI_RX_index] = value;
+      SPI_RX_index++;
+    }
   }
- 
-} 
+}
+
+/*MSP430 SPI TX Service Routine*/
+interrupt(USCIAB0TX_VECTOR)  USCI0TX_ISR (void)
+{
+  if(IFG2 & UCB0TXIFG){
+    if (spi_error_flag == HIGH) {
+      if(SPI_TX_index >= 15){
+        SPI_TX_index=0;
+        spi_error_flag == LOW;
+        IE2 &= ~UCB0TXIE;
+      } else {
+        UCB0TXBUF = SPI_TX_Error[SPI_TX_index];
+        SPI_TX_index++;
+      }
+    }//end of spi error if
+  }//end of TX flag check if
+}
 
 /******************************
-  MSP430 Functions
+  Utility Functions
 ******************************/
-void disableWDT(void){
+void disable_wdt(void){
   WDTCTL = WDTPW + WDTHOLD;// Stop watchdog timer
-
 }
 
-void configureACLK(void) {
-  //Check memory
-  if (CALBC1_1MHZ == 0xFF || CALDCO_1MHZ == 0xFF)
-    FaultRoutine();// If clock calibration data has been erased
-  BCSCTL1 = CALBC1_1MHZ;
-  DCOCTL = CALDCO_1MHZ;
-  BCSCTL3 |= LFXT1S_2;
-  IFG1 &= ~OFIFG; 
-  BCSCTL2 |= SELM_0 + DIVM_3 + DIVS_3;
-
-
-}
-
-//Incase of Hardware failures or security breach
-void FaultRoutine(void) {
+/* Incase of Hardware failures */
+void fault_routine(void) {
   P1OUT &= ~BIT0; //turn off powerlight for warning
   while(1); 
 } 
 
-void configureTimer(){
-    CCTL0 = CCIE;
-    CCR0 = 11800;
-    TACTL |= TASSEL_1;	//Use ACLK as source for timer
-    TACTL |= MC_1;	//Use UP mode timer
+/* Delay For Debug LED function.*/
+void led_delay(uint32_t d) {
+  int i;
+  for (i = 0; i<d; i++) {
+    nop();
+  }
 }
+/* SPI Debug LED flash */
+void flash_spi_detected(void) {
+    int i=0;
+    //P1OUT = ~P1OUT;
+    for (i=0; i < 6; ++i) {
+        //P1OUT = ~P1OUT;
+        led_delay(0x4fff);
+        led_delay(0x4fff);
+    }
+}
+
+void setup_spi(void) {
+  P1DIR |= BIT0;                       //For debug, remove for deployment
+
+  UCB0CTL1 = UCSWRST;                  //Put msp430 USCI state machine in reset
+  UCB0CTL0 = UCMODE_2|UCSYNC|UCCKPH;   //4-pin, 8-bit SPI slave
+  UCB0CTL0 |= UCMSB;                   //Enable Most Singnificant bit first
+  UCB0CTL0 &= ~UCMST;                  //Set to slave.
+  P1SEL = BIT4 + BIT5 + BIT6 + BIT7;   //enable 4 SPI UCB0 pins
+  P1SEL2 = BIT4 + BIT5 + BIT6 + BIT7; 
+  UCB0CTL1 &= ~UCSWRST;                //Set USCI state machine**
+  IFG2 &= ~UCB0RXIFG;                  //Clear pending recieve interupt
+  IE2 |= UCB0RXIE;                     //Enable USCI0 RX interrupt
+}
+
+void get_buffer_time(void) {
+   strncpy(rx_seconds, &SPI_RX_buff[1], 2);
+   num_seconds = atoi(rx_seconds);
+   strncpy(rx_minutes, &SPI_RX_buff[3], 2);
+   num_minutes = atoi(rx_minutes);
+   strncpy(rx_hours, &SPI_RX_buff[5], 2);
+   num_hours = atoi(rx_hours);
+}
+
+void get_buffer_date(void) {
+   strncpy(rx_year, &SPI_RX_buff[1], 4);
+   num_year = atoi(rx_year);
+   strncpy(rx_month, &SPI_RX_buff[5], 2);
+   num_month = atoi(rx_month);
+   strncpy(rx_day, &SPI_RX_buff[7], 2);
+   num_day = atoi(rx_day);
+}
+
+
+
 
