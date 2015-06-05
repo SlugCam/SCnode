@@ -1,10 +1,17 @@
 MSP430
 ========
-Rather than going through TI's simplified eclipse IDE, msp430 projects are compiled
-and programed through 2 commandline tools MSPGCC4 and MSPDEBUG. In this README I discuss
-how to setup these tools and how to compile and run a msp430 project.
+Rather than going through TI's simplified eclipse IDE, SlugCam's firmware was developed, compiled,
+and programed through the [Energia GUI](http://energia.nu/download/). Using this environment we could
+take advantage of the much more readible macros and the overall development process is similar to the much
+more user friend arduino platform. We do take advantage of the third party RTC library and the original
+msp430 syntax when needed. Therefor make sure to include and import the nessecary header files along with
+the relayContro ino file.
 
-* * *
+
+* * * WARNING DEPRECATED INSTRUCTIONS
+If you choose to use the command line compiler you will need to make changes to the firmware source files.
+Currently they do not compile, because of the adoption of the Energia library. However if you do wish to make 
+changes follow these instructions:
 
 Setup
 --------

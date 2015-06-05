@@ -1,5 +1,5 @@
 
-lugcam MSP430 Firmware
+/*Slugcam MSP430 Firmware
  
  Date: 2/22/2015
  Author: Kevin Abas
@@ -45,10 +45,10 @@ lugcam MSP430 Firmware
      Set: pin 9 (P2.1)
      Reset: pin 10 (P2.2)
  */
-#include <timerPacket.h>
 #include "msp430g2553.h"
-#include <string.h>
-#include <RTCplus.h> // Real-Time-Clock Library
+#include "RTCplus.h" // Real-Time-Clock Library
+#include "energia/pins_energia.h"
+#include "energia/Energia.h"
 
 //Interupt Service Routine Flags
 volatile int motion_interupt_flag  = LOW;
@@ -85,53 +85,92 @@ int  num_seconds, num_minutes, num_hours,
 char *rx_seconds, *rx_minutes, *rx_hours, 
       *rx_year, *rx_month, *rx_day;
 
+
 /******************************
-    Init Config Function
+  Utility Functions
 ******************************/
-void setup() {
+void disable_wdt(void){
+  WDTCTL = WDTPW + WDTHOLD;// Stop watchdog timer
+}
 
-  // initialize the pins for I/O
-  pinMode(relay_set_pin, OUTPUT);
-  pinMode(relay_reset_pin, OUTPUT);
-  pinMode(pir_dout_pin, INPUT);
-  pinMode(pir_enable_pin, OUTPUT);
+/* Incase of Hardware failures */
+void fault_routine(void) {
+  P1OUT &= ~BIT0; //turn off powerlight for warning
+  while(1); 
+} 
 
-  attachInterrupt(pir_dout_pin, motion_detected, RISING);
-  digitalWrite(pir_enable_pin, HIGH);
+/* Delay For Debug LED function.*/
+void led_delay(uint32_t d) {
+  int i;
+  for (i = 0; i<d; i++) {
+    nop();
+  }
+}
+/* SPI Debug LED flash */
+void flash_spi_detected(void) {
+    int i=0;
+    //P1OUT = ~P1OUT;
+    for (i=0; i < 6; ++i) {
+        //P1OUT = ~P1OUT;
+        led_delay(0x4fff);
+        led_delay(0x4fff);
+    }
+}
 
-  disable_wdt(); // Watch Dog Timer
-  
-  setup_spi();
-  
-  _BIS_SR(GIE); //Enable Global Interupts
-  my_clock.begin(); //Start RTC
+void setup_spi(void) {
+  P1DIR |= BIT0;                       //For debug, remove for deployment
+
+  UCB0CTL1 = UCSWRST;                  //Put msp430 USCI state machine in reset
+  UCB0CTL0 = UCMODE_2|UCSYNC|UCCKPH;   //4-pin, 8-bit SPI slave
+  UCB0CTL0 |= UCMSB;                   //Enable Most Singnificant bit first
+  UCB0CTL0 &= ~UCMST;                  //Set to slave.
+  P1SEL = BIT4 + BIT5 + BIT6 + BIT7;   //enable 4 SPI UCB0 pins
+  P1SEL2 = BIT4 + BIT5 + BIT6 + BIT7; 
+  UCB0CTL1 &= ~UCSWRST;                //Set USCI state machine**
+  IFG2 &= ~UCB0RXIFG;                  //Clear pending recieve interupt
+  IE2 |= UCB0RXIE;                     //Enable USCI0 RX interrupt
   
 }
 
+void set_sleep_timer(int seconds, int minutes, int hours) {
+   end_timer_seconds = (my_clock.RTC_sec + seconds ) % 60;
+   if( (end_timer_seconds <= 30 && ( seconds >= 30 || my_clock.RTC_sec >= 30 ) )
+        || ( seconds >= 30 && my_clock.RTC_sec >= 30 )){
+     end_timer_minutes = (my_clock.RTC_min + 1 + minutes) % 60;
+   }else{
+     end_timer_minutes = (my_clock.RTC_min + minutes) % 60;
+   }
+   if( (end_timer_minutes <= 30 && ( minutes >= 30 || my_clock.RTC_min >= 30 ) )
+        || ( minutes >= 30 && my_clock.RTC_min >= 30 )){
+     end_timer_hours = (my_clock.RTC_hr + 1 + hours) % 24;
+   }else{
+     end_timer_hours = (my_clock.RTC_hr + hours) % 24;
+   }
+}
 
-/******************************
-        Main Loop
-******************************/
-void loop() {
-  
-  while (P1IN & BIT5);                   // If clock sig from mstr stays low,
-                                            // it is not yet in SPI mode
-  flash_spi_detected();                 // Blink 3 times
-  
-  if(timer_interupt_flag == HIGH){
-    process_timer_expired();
-    timer_interupt_flag = LOW; 
-  }else if(spi_interupt_flag == HIGH){  
-    process_spi();
-  }else if(motion_interupt_flag == HIGH){
-    motion_interupt_flag = LOW;  
-    process_motion();
-  }else if( (motion_interupt_flag == LOW) &&
-             (timer_interupt_flag == LOW) &&
-               (spi_interupt_flag == LOW) ){
-    __bis_SR_register(LPM3_bits + GIE);       // Enter LPM3, enable interrupts
-  }
-   
+void get_disable_time(void) {
+   strncpy(rx_seconds, &SPI_RX_buff[3], 2);
+   num_seconds = atoi(rx_seconds);
+   strncpy(rx_minutes, &SPI_RX_buff[5], 2);
+   num_minutes = atoi(rx_minutes);
+}
+
+void get_buffer_time(void) {
+   strncpy(rx_seconds, &SPI_RX_buff[1], 2); 
+   num_seconds = atoi(rx_seconds);
+   strncpy(rx_minutes, &SPI_RX_buff[3], 2);
+   num_minutes = atoi(rx_minutes);
+   strncpy(rx_hours, &SPI_RX_buff[5], 2);
+   num_hours = atoi(rx_hours);
+}
+
+void get_buffer_date(void) {
+   strncpy(rx_year, &SPI_RX_buff[1], 4);
+   num_year = atoi(rx_year);
+   strncpy(rx_month, &SPI_RX_buff[5], 2);
+   num_month = atoi(rx_month);
+   strncpy(rx_day, &SPI_RX_buff[7], 2);
+   num_day = atoi(rx_day);
 }
 
 /******************************
@@ -222,18 +261,18 @@ void motion_detected(void){
 //Using MSP430 native interupt notation
 interrupt(TIMER1_A0_VECTOR) Tic_Tac(void) {
     my_clock++;            // Update time
-    if( (my_clock.RTC_hr >= end_timer_hours) && 
-          (my_clock.RTC_min >= end_timer_minutes) && 
+    if( (my_clock.RTC_hr >= end_timer_hours) &&
+          (my_clock.RTC_min >= end_timer_minutes) &&
             (my_clock.RTC_sec >= end_timer_seconds) ){
       timer_interupt_flag = HIGH;
        __bic_status_register_on_exit(LPM3_bits);
     }
-   if((my_clock.RTC_min >= disable_pir_minutes) && 
+   if((my_clock.RTC_min >= disable_pir_minutes) &&
             (my_clock.RTC_sec >= disable_pir_seconds) ){
       disable_pir_flag = LOW;
        digitalWrite(pir_enable_pin, HIGH);
        __bic_status_register_on_exit(LPM3_bits);
-    }  
+    }
 }
 
 //MSP430 SPI RX Service Routine
@@ -246,95 +285,57 @@ interrupt(USCIAB0RX_VECTOR)  USCI0RX_ISR (void)
         __bic_status_register_on_exit(LPM3_bits);
     } else {
       SPI_RX_buff[SPI_RX_index] = value;
-      SPI_RX_index++; 
-    }  
-  } 
+      SPI_RX_index++;
+    }
+  }
 }
 
 /******************************
-  Utility Functions
+    Init Config Function
 ******************************/
-void disable_wdt(void){
-  WDTCTL = WDTPW + WDTHOLD;// Stop watchdog timer
-}
+void setup() {
 
-/* Incase of Hardware failures */
-void fault_routine(void) {
-  P1OUT &= ~BIT0; //turn off powerlight for warning
-  while(1); 
-} 
+  // initialize the pins for I/O
+  pinMode(relay_set_pin, OUTPUT);
+  pinMode(relay_reset_pin, OUTPUT);
+  pinMode(pir_dout_pin, INPUT);
+  pinMode(pir_enable_pin, OUTPUT);
 
-/* Delay For Debug LED function.*/
-void led_delay(uint32_t d) {
-  int i;
-  for (i = 0; i<d; i++) {
-    nop();
-  }
-}
-/* SPI Debug LED flash */
-void flash_spi_detected(void) {
-    int i=0;
-    //P1OUT = ~P1OUT;
-    for (i=0; i < 6; ++i) {
-        //P1OUT = ~P1OUT;
-        led_delay(0x4fff);
-        led_delay(0x4fff);
-    }
-}
+  attachInterrupt(pir_dout_pin, motion_detected, RISING);
+  digitalWrite(pir_enable_pin, HIGH);
 
-void setup_spi(void) {
-  P1DIR |= BIT0;                       //For debug, remove for deployment
-
-  UCB0CTL1 = UCSWRST;                  //Put msp430 USCI state machine in reset
-  UCB0CTL0 = UCMODE_2|UCSYNC|UCCKPH;   //4-pin, 8-bit SPI slave
-  UCB0CTL0 |= UCMSB;                   //Enable Most Singnificant bit first
-  UCB0CTL0 &= ~UCMST;                  //Set to slave.
-  P1SEL = BIT4 + BIT5 + BIT6 + BIT7;   //enable 4 SPI UCB0 pins
-  P1SEL2 = BIT4 + BIT5 + BIT6 + BIT7; 
-  UCB0CTL1 &= ~UCSWRST;                //Set USCI state machine**
-  IFG2 &= ~UCB0RXIFG;                  //Clear pending recieve interupt
-  IE2 |= UCB0RXIE;                     //Enable USCI0 RX interrupt
+  disable_wdt(); // Watch Dog Timer
+  
+  setup_spi();
+  
+  _BIS_SR(GIE); //Enable Global Interupts
+  my_clock.begin(); //Start RTC
   
 }
 
-void set_sleep_timer(int seconds, int minutes, int hours) {
-   end_timer_seconds = (my_clock.RTC_sec + seconds ) % 60;
-   if( (end_timer_seconds <= 30 && ( seconds >= 30 || my_clock.RTC_sec >= 30 ) )
-        || ( seconds >= 30 && my_clock.RTC_sec >= 30 )){
-     end_timer_minutes = (my_clock.RTC_min + 1 + minutes) % 60;
-   }else{
-     end_timer_minutes = (my_clock.RTC_min + minutes) % 60;
-   }
-   if( (end_timer_minutes <= 30 && ( minutes >= 30 || my_clock.RTC_min >= 30 ) )
-        || ( minutes >= 30 && my_clock.RTC_min >= 30 )){
-     end_timer_hours = (my_clock.RTC_hr + 1 + hours) % 24;
-   }else{
-     end_timer_hours = (my_clock.RTC_hr + hours) % 24;
-   }
+/******************************
+        Main Loop
+******************************/
+void loop() {
+  
+  while (P1IN & BIT5);                   // If clock sig from mstr stays low,
+                                            // it is not yet in SPI mode
+  flash_spi_detected();                 // Blink 3 times
+  
+  if(timer_interupt_flag == HIGH){
+    process_timer_expired();
+    timer_interupt_flag = LOW; 
+  }else if(spi_interupt_flag == HIGH){  
+    process_spi();
+  }else if(motion_interupt_flag == HIGH){
+    motion_interupt_flag = LOW;  
+    process_motion();
+  }else if( (motion_interupt_flag == LOW) &&
+             (timer_interupt_flag == LOW) &&
+               (spi_interupt_flag == LOW) ){
+    __bis_SR_register(LPM3_bits + GIE);       // Enter LPM3, enable interrupts
+  }
+   
 }
 
-void get_disable_time(void) {
-   strncpy(rx_seconds, &SPI_RX_buff[3], 2);
-   num_seconds = atoi(rx_seconds);
-   strncpy(rx_minutes, &SPI_RX_buff[5], 2);
-   num_minutes = atoi(rx_minutes);
-}
-
-void get_buffer_time(void) {
-   strncpy(rx_seconds, &SPI_RX_buff[1], 2);
-   num_seconds = atoi(rx_seconds);
-   strncpy(rx_minutes, &SPI_RX_buff[3], 2);
-   num_minutes = atoi(rx_minutes);
-   strncpy(rx_hours, &SPI_RX_buff[5], 2);
-   num_hours = atoi(rx_hours);
-}
-
-void get_buffer_date(void) {
-   strncpy(rx_year, &SPI_RX_buff[1], 4);
-   num_year = atoi(rx_year);
-   strncpy(rx_month, &SPI_RX_buff[5], 2);
-   num_month = atoi(rx_month);
-   strncpy(rx_day, &SPI_RX_buff[7], 2);
-   num_day = atoi(rx_day);
-}
 
