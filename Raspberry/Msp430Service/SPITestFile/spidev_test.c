@@ -45,27 +45,39 @@ static void transfer(int fd)
         0x0A 
 	};
 	uint8_t rx[ARRAY_SIZE(tx)] = {0, };
-	struct spi_ioc_transfer tr = {
+	struct spi_ioc_transfer mesg[2] = { 0, };
+	struct spi_ioc_transfer send_mesg = {
 		.tx_buf = (unsigned long)tx,
-		.rx_buf = (unsigned long)rx,
+		.rx_buf = (unsigned long)NULL,
 		.len = ARRAY_SIZE(tx),
+		.cs_change = 0,
 		.delay_usecs = delay,
 		.speed_hz = speed,
 		.bits_per_word = bits,
 	};
+	struct spi_ioc_transfer rcv_mesg = {
+                .tx_buf = (unsigned long)NULL,
+                .rx_buf = (unsigned long)rx,
+                .len = ARRAY_SIZE(tx),
+                .delay_usecs = delay,
+                .speed_hz = speed,
+                .bits_per_word = bits,
+        };
+	mesg[0] = send_mesg;
+	mesg[1] = rcv_mesg;
  
-	ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+	ret = ioctl(fd, SPI_IOC_MESSAGE(1), &mesg);
 	if (ret < 1)
 		pabort("can't send spi message");
  
-    /*
+    
 	for (ret = 0; ret < ARRAY_SIZE(tx); ret++) {
 		if (!(ret % 6))
 			puts("");
 		printf("%.2X ", rx[ret]);
 	}
 	puts("");
-    */
+    
 }
  
 static void print_usage(const char *prog)
