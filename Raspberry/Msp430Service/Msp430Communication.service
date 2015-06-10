@@ -1,0 +1,13 @@
+[Unit]
+Description=SlugCam's Communication Service For MSP430 Microcontroller
+Documentation=https://github.com/SlugCam/SCnode/tree/master/Raspberry/Msp430Service
+#Wants=SCmanagement.service  -- We might want a parent service?
+#After=SCmanagement.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/SC-daemons/Msp430-daemon
+
+[Install]
+WantedBy=multi-user.target
+

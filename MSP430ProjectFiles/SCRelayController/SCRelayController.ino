@@ -4,6 +4,7 @@
  Date: 2/22/2015
  Author: Kevin Abas
  Last Modified: 6/2/2015
+ File: 
  
  This program allows the MSP430 the ability to monitor the passive 
  infared sensor for motion, and to power on the SlugCam system using 
@@ -24,8 +25,8 @@
      Set Sleep Countdown:
          'S000000\n__' (S+hrs(__)+min(__)+sec(__)+\n__)
      Special Commands:
-         'CON\n______' (C+remainOn(ON)+\n______)
-         'CDP0000\n__' (C+deepSleepMin(__)+deepSleepSec(__)+\n__)
+         'CON\n______' (C+remainOn(ON)+\n______)  <-Stay on forever
+         'CDP0000\n__' (C+disable(__)+disableSec(__)+\n__) <-ignore PIR for this long
         
      *NOTE: The Pi should replace the trailing _'s with 0's 
  
@@ -44,7 +45,6 @@
      Set: pin 9 (P2.1)
      Reset: pin 10 (P2.2)
  */
-#include <timerPacket.h>
 #include "msp430g2553.h"
 #include <string.h>
 #include <RTCplus.h> // Real-Time-Clock Library
@@ -55,11 +55,15 @@ volatile int spi_interupt_flag     = LOW;
 volatile int spi_error_flag        = LOW;
 volatile int timer_interupt_flag   = LOW;
 volatile int timer_running_flag    = LOW;
+volatile int disable_pir_flag    = LOW;
 
 //Protected Timer Values
 volatile unsigned int end_timer_seconds   = 99;
 volatile unsigned int end_timer_minutes   = 99;
 volatile unsigned int end_timer_hours     = 99;
+volatile unsigned int disable_pir_seconds   = 99;
+volatile unsigned int disable_pir_minutes   = 99;
+
 
 //Relay and PIR pins
 const int relay_set_pin   = 9;
@@ -72,9 +76,9 @@ RealTimeClock my_clock;
 
 //SPI RX Buffer Variables
 char SPI_RX_buff[13];
-char SPI_TX_Error[16] = "InvalidRequest\n";
+volatile char SPI_TX_Error[16] = "Invalid\n";
 char SPI_RX_index = 0;
-char SPI_TX_index = 0;
+volatile char SPI_TX_index = 0;
 int  num_seconds, num_minutes, num_hours, 
       num_year, num_month, num_day;
 char *rx_seconds, *rx_minutes, *rx_hours, 
@@ -100,6 +104,7 @@ void setup() {
   
   _BIS_SR(GIE); //Enable Global Interupts
   my_clock.begin(); //Start RTC
+  set_sleep_timer(0, 5, 0); //auto sleep countdown is 5 min
   
 }
 
@@ -134,67 +139,76 @@ void loop() {
 ******************************/
 void process_motion(void){
   //If relay isn't on turn it on
- 
   if(digitalRead(relay_set_pin) == LOW){
        timer_running_flag = HIGH;
        digitalWrite(relay_set_pin, HIGH);
        digitalWrite(relay_reset_pin, LOW);
-  }  
+  }
+  set_sleep_timer(0, 5, 0); //auto sleep countdown is 5 min
+  timer_running_flag    = HIGH;
+  digitalWrite(pir_enable_pin, LOW); //disable PIR to save power
 }
 
 void process_spi(void){
-  //If relay isn't on turn it on
-  switch(SPI_RX_buff[0]){      
-     case 'T':
+  
+  switch(SPI_RX_buff[0]){ 
+    
+     case 'T': //set RTC time
        get_buffer_time();
        my_clock.Set_Time(num_hours, num_minutes, num_seconds);
-     case  'D':
+       
+     case  'D': //set Date
        get_buffer_date();
        my_clock.Set_Date(num_year, num_month, num_day);
-     case  'S':
+       
+     case  'S': //set sleep countdown
        get_buffer_time(); 
-       end_timer_seconds = (my_clock.RTC_sec + num_seconds ) % 60;
-       if( (end_timer_seconds <= 30 && ( num_seconds >= 30 || my_clock.RTC_sec >= 30 ) )
-            || ( num_seconds >= 30 && my_clock.RTC_sec >= 30 )){
-         end_timer_minutes = (my_clock.RTC_min + 1 + num_minutes) % 60;
-       }else{
-         end_timer_minutes = (my_clock.RTC_min + num_minutes) % 60;
-       }
-       if( (end_timer_minutes <= 30 && ( num_minutes >= 30 || my_clock.RTC_min >= 30 ) )
-            || ( num_minutes >= 30 && my_clock.RTC_min >= 30 )){
-         end_timer_hours = (my_clock.RTC_hr + 1 + num_hours) % 24;
-       }else{
-         end_timer_hours = (my_clock.RTC_hr + num_hours) % 24;
-       }
+       set_sleep_timer(num_seconds, num_minutes, num_hours);
        timer_running_flag    = HIGH;
-     case  'C':
+       digitalWrite(pir_enable_pin, LOW);
+       
+     case  'C': //special command (stay on | diable PIR)
+       if(SPI_RX_buff[1] == 'O') {
+         digitalWrite(pir_enable_pin, LOW);
+          end_timer_seconds   = 99;
+          end_timer_minutes   = 99;
+          end_timer_hours     = 99;
+       }else if(SPI_RX_buff[1] == 'D') {
+          get_disable_time();
+          disable_pir_seconds = (my_clock.RTC_sec + num_seconds ) % 60;
+          if( (end_timer_seconds <= 30 && ( num_seconds >= 30 || my_clock.RTC_sec >= 30 ) )
+              || ( num_seconds >= 30 && my_clock.RTC_sec >= 30 )){
+            disable_pir_minutes = (my_clock.RTC_min + 1 + num_minutes) % 60;
+          }else{
+            disable_pir_minutes = (my_clock.RTC_min + num_minutes) % 60;
+          }
+          digitalWrite(pir_enable_pin, LOW);
+          disable_pir_flag    = HIGH;
+       } 
+       
+      default:
        break;
-     case  'H':
-       P1OUT = ~P1OUT;
-       spi_error_flag == HIGH;
-       //IE2 |= UCB0TXIE;
-     default:
-       break;
-     
-     
-    
-    }
-    SPI_RX_index = 0;
-    spi_interupt_flag = LOW;
+   }
+   SPI_RX_index = 0;
+   spi_interupt_flag = LOW;
 }
 
 void process_timer_expired(void){
   //now turn off relay
-    P1OUT = ~P1OUT;
+    P1OUT = ~P1OUT; //for debugging
    timer_interupt_flag = LOW;
   if(digitalRead(relay_set_pin) == HIGH){
-       timer_running_flag = LOW;
+      
        digitalWrite(relay_set_pin, LOW);
        digitalWrite(relay_reset_pin, HIGH);
   }
+   timer_running_flag = LOW;
    end_timer_seconds   = 99;
    end_timer_minutes   = 99;
    end_timer_hours     = 99;
+   if(disable_pir_flag == LOW){
+     digitalWrite(pir_enable_pin, HIGH);
+   }
 }
 
 /******************************
@@ -207,45 +221,34 @@ void motion_detected(void){
 
 //Using MSP430 native interupt notation
 interrupt(TIMER1_A0_VECTOR) Tic_Tac(void) {
-    my_clock++;            // Update chunks
-    if( (my_clock.RTC_min >= end_timer_hours) && 
+    my_clock++;            // Update time
+    if( (my_clock.RTC_hr >= end_timer_hours) && 
           (my_clock.RTC_min >= end_timer_minutes) && 
             (my_clock.RTC_sec >= end_timer_seconds) ){
       timer_interupt_flag = HIGH;
        __bic_status_register_on_exit(LPM3_bits);
-    } 
+    }
+   if((my_clock.RTC_min >= disable_pir_minutes) && 
+            (my_clock.RTC_sec >= disable_pir_seconds) ){
+      disable_pir_flag = LOW;
+       digitalWrite(pir_enable_pin, HIGH);
+       __bic_status_register_on_exit(LPM3_bits);
+    }  
 }
 
 //MSP430 SPI RX Service Routine
 interrupt(USCIAB0RX_VECTOR)  USCI0RX_ISR (void)
 {
-  if(IFG2 & UCB0RXIFG){
+  if(IFG2 & UCB0RXIFG) {
     char value = UCB0RXBUF;
     if (value == '\n') { //ready to parse
         spi_interupt_flag = HIGH;
         __bic_status_register_on_exit(LPM3_bits);
     } else {
       SPI_RX_buff[SPI_RX_index] = value;
-      SPI_RX_index++;
-    }
-  }
-}
-
-/*MSP430 SPI TX Service Routine*/
-interrupt(USCIAB0TX_VECTOR)  USCI0TX_ISR (void)
-{
-  if(IFG2 & UCB0TXIFG){
-    if (spi_error_flag == HIGH) {
-      if(SPI_TX_index >= 15){
-        SPI_TX_index=0;
-        spi_error_flag == LOW;
-        IE2 &= ~UCB0TXIE;
-      } else {
-        UCB0TXBUF = SPI_TX_Error[SPI_TX_index];
-        SPI_TX_index++;
-      }
-    }//end of spi error if
-  }//end of TX flag check if
+      SPI_RX_index++; 
+    }  
+  } 
 }
 
 /******************************
@@ -291,10 +294,34 @@ void setup_spi(void) {
   UCB0CTL1 &= ~UCSWRST;                //Set USCI state machine**
   IFG2 &= ~UCB0RXIFG;                  //Clear pending recieve interupt
   IE2 |= UCB0RXIE;                     //Enable USCI0 RX interrupt
+  
+}
+
+void set_sleep_timer(int seconds, int minutes, int hours) {
+   end_timer_seconds = (my_clock.RTC_sec + seconds ) % 60;
+   if( (end_timer_seconds <= 30 && ( seconds >= 30 || my_clock.RTC_sec >= 30 ) )
+        || ( seconds >= 30 && my_clock.RTC_sec >= 30 )){
+     end_timer_minutes = (my_clock.RTC_min + 1 + minutes) % 60;
+   }else{
+     end_timer_minutes = (my_clock.RTC_min + minutes) % 60;
+   }
+   if( (end_timer_minutes <= 30 && ( minutes >= 30 || my_clock.RTC_min >= 30 ) )
+        || ( minutes >= 30 && my_clock.RTC_min >= 30 )){
+     end_timer_hours = (my_clock.RTC_hr + 1 + hours) % 24;
+   }else{
+     end_timer_hours = (my_clock.RTC_hr + hours) % 24;
+   }
+}
+
+void get_disable_time(void) {
+   strncpy(rx_seconds, &SPI_RX_buff[3], 2);
+   num_seconds = atoi(rx_seconds);
+   strncpy(rx_minutes, &SPI_RX_buff[5], 2);
+   num_minutes = atoi(rx_minutes);
 }
 
 void get_buffer_time(void) {
-   strncpy(rx_seconds, &SPI_RX_buff[1], 2);
+   strncpy(rx_seconds, &SPI_RX_buff[1], 2); 
    num_seconds = atoi(rx_seconds);
    strncpy(rx_minutes, &SPI_RX_buff[3], 2);
    num_minutes = atoi(rx_minutes);

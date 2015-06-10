@@ -1,22 +1,30 @@
 /*
-*  SlugCam's Energy Consumption Monitoring Service
+*  SlugCam's Msp430 Communications Service
 *  Author: Kevin Abas
-*  Date: 3/15/2015
+*  Date: 6/5/2015
 *
 *  INSERT LICENCE HERE
 */
 
+#include	<stdio.h>
+#include	<stdlib.h>
+#include 	<stdint.h>
+#include	<stdarg.h>
+#include 	<unistd.h>
+#include	<errno.h>
+#include 	<signal.h>
+#include	<syslog.h>
+#include	<string.h>
 
-#ifndef PowerAnalysisDaemon__h
-#define PowerAnalysisDaemon__h
 
-#define		UNIXSOCKET_PATH "/tmp/paunix.str" /* The Power Analysis daemon UNIX socket stream */
+#ifndef Msp430Daemon__h
+#define Msp430Daemon__h
+
+#define		UNIXSOCKET_PATH "/tmp/mspunix.str" /* The Power Analysis daemon UNIX socket stream */
 #define		MAXLINE			4096	/* Max text line length */
 #define 	LISTENQUEUE		1024	/* Number of queued requests, default may be too small */
 #define		SA				struct sockaddr		/* For ease */
-#define		DONEPIN			17		/* Lipo charger Done status pin on PI GPIO 17 */
-#define		CHRGPIN			27		/* Lipo charger Charging status pin on PI GPIO 27 */
-#define		PGOODPIN		22		/* Lipo charger Power Good status pin on PI GPIO 22 */
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 /* The Power Analysis request struct */
 typedef struct paRequest {
@@ -26,7 +34,8 @@ typedef struct paRequest {
 } paRequest;
 
 /* Daemon related functions*/
-const char *getBatteryStatus(void);
+static void pabort(const char *s);
+static void transfer(int fd)
 
 /* Unix Domain Socket handling functions */
 ssize_t	wrap_write(int fd, const void *vptr, size_t n);
@@ -37,6 +46,5 @@ void read_request(int sockfd) ;
 /* Request handling functions */
 int build_response(paRequest *curr_request, char *vptr_response);
 int parse_request(paRequest *curr_request, const void *vptr_request);
-
 
 #endif

@@ -1,16 +1,71 @@
-#Makefile for PowerAnalysis-daemon
+#Makefile for Msp430Service
+
+TARGET=Msp430-daemon
+
 INCLUDE = ../../include
-#LIBFILES = cJSON.c wrappers.c scLogger.c 
+SOURCE = Msp430-daemon.c \
+	$(INCLUDE)/cJSON.c \
+	$(INCLUDE)/wrappers.c \
+	$(INCLUDE)/scLogger.c 
 FLAGS = -Wall -Wstrict-prototypes -Wwrite-strings -I$(INCLUDE) -I/usr/local/include -L/usr/local/lib -lm -lwiringPi
+VPATH=$(INCLUDE)
+OBJ=$(join $(addsuffix ../obj/, $(dir $(SOURCE))), $(notdir $(SOURCE:.c=.o))) 
+DEPENDS=$(join $(addsuffix ../.dep/, $(dir $(SOURCE))), $(notdir $(SOURCE:.c=.d)))
 
-daemon: $(INCLUDE) PowerAnalysis-daemon.h 
-	gcc -o PowerAnalysis-daemon PowerAnalysis-daemon.c $(LIBFILES) $(FLAGS) 
+all: $(TARGET)
+	@true
 
-testClient: $(INCLUDE)
-	gcc -o PowerAnalysis-daemon-testClient PowerAnalysis-daemon-testClient.c $(LIBFILES) $(FLAGS)
+## Rule for making the actual target
+$(TARGET): $(OBJ)
+	@echo "============="
+	@echo "Linking the target $@"
+	@echo "============="
+	@gcc $(FLAGS) -o $@ $^ $(LIBS)
+	@echo -- Link finished --
+
+## Generic compilation rule
+%.o : %.c
+	@mkdir -p $(dir $@)
+	@echo "============="
+	@echo "Compiling $<"
+	@gcc $(FLAGS) -c $< -o $@
+
+## Rules for object files from c files
+## Object file for each file is put in obj directory
+## one level up from the actual source directory.
+../obj/%.o : %.c
+	@mkdir -p $(dir $@)
+	@echo "============="
+	@echo "Compiling $<"
+	@gcc $(FLAGS) -c $< -o $@
+
+# Rule for "other directory"  You will need one per "other" dir
+$(INCLUDE)/../obj/%.o : %.c
+	@mkdir -p $(dir $@)
+	@echo "============="
+	@echo "Compiling $<"
+	@gcc $(FLAGS) -c $< -o $@
+
+## Make dependancy rules
+../.dep/%.d: %.cpp
+	@mkdir -p $(dir $@)
+	@echo "============="
+	@echo Building dependencies file for $*.o
+	@$(SHELL) -ec 'gcc -M $(FLAGS) $< | sed "s^$*.o^../obj/$*.o^" > $@'
+
+## Dependency rule for "other" directory
+$(INCLUDE)/../.dep/%.d: %.c
+	@mkdir -p $(dir $@)
+	@echo "============="
+	@echo Building dependencies file for $*.o
+	@$(SHELL) -ec 'gcc -M $(FLAGS) $< | sed "s^$*.o^$(INCLUDE)/../obj/$*.o^" > $@'
+
+## Include the dependency files
+-include $(DEPENDS)
 
 install:
-	mv PowerAnalysis-daemon /usr/lib/SC-daemons/
+	mv Msp430-daemon /usr/lib/SC-daemons/
 
 clean:
-	rm -f PowerAnalysis-daemon *.o
+	@-rm -f $(TARGET) $(OBJ) $(DEPENDS)
+	@-rm -r ../obj
