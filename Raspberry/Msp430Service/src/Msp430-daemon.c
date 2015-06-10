@@ -3,10 +3,23 @@
 *  Author: Kevin Abas
 *  Date: 6/8/2015
 *  Description: This is SlugCam's Msp430 Communication service responsible for sending commands to 
-*				the attached msp430 microcontroller. The Msp430 manages how long SlugCam should remain on
-*				before shuting down and having the relay cut power.
+*				the attached msp430 micro-controller. The Msp430 manages how long SlugCam should remain on
+*				before shutting down and having the relay cut power.
 *
-*  INSERT LICENCE HERE
+*  Standard MIT License:
+*  Copyright (c) 2015 SlugCam Team
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
+* associated documentation files (the "Software"), to deal in the Software without restriction, including 
+* without limitation the rights to use, copy, modify, merge, publish, distribute, sub-license, and/or sell 
+* copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the 
+* following conditions: The above copyright notice and this permission notice shall be included in all copies
+* or substantial portions of the Software.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
+* LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN 
+* NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 
@@ -71,8 +84,8 @@ int build_response(paRequest *curr_request, char *ptr_response){
 	cJSON_AddItemToObject(root, "data", data = cJSON_CreateObject());
 
 	cJSON_AddStringToObject(data, "type", "msp430");
-	cJSON_AddStringToObject(data, "message", "Message Recieved.");
-	debug_log("Message recieved and sent.");
+	cJSON_AddStringToObject(data, "message", "Message Received.");
+	debug_log("Message received and sent.");
 	timegen = time(NULL);
 	loctime = localtime (&timegen);
 	timestr = asctime (loctime);

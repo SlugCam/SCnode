@@ -1,10 +1,12 @@
 /*
-*  SlugCam's Energy Consumption Monitoring Service
+*  SlugCam's Video and Image Processing Service
 *  Author: Kevin Abas
-*  Date: 3/8/2015
-*  Description: This is SlugCam's Power Analysis Daemon that not only monitors battery 
-*				life and status, but also processes requests from other daemons and responds
-*				with status messages.
+*  Date: 6/4/2015
+*
+*  Description: This is SlugCam's  service module responsible for controlling the System's camera device.
+*  The Raspberry Pi camera module can take high resolution video and images and is configured with passed
+*  parameters from other Unit services. Processing is also accomplished in this service and is currently
+*  capable of pedestrian detection.
 *
 *  Standard MIT License:
 *  Copyright (c) 2015 SlugCam Team
@@ -26,27 +28,22 @@
 
 #include	<sys/un.h>
 #include	<sys/socket.h>
-#include	<stdio.h>
-#include	<stdlib.h>
-#include	<stdarg.h>
-#include 	<unistd.h>
-#include	<errno.h>
-#include 	<signal.h>
-#include	<syslog.h>
-#include	<string.h>
+#include 	<sys/ioctl.h>
 #include	<time.h>
+#include 	<getopt.h>
+#include 	<fcntl.h>
+
+#include 	<linux/types.h>
+#include 	<linux/spi/spidev.h>
 
 #include 	"cJSON.h" 
 #include	"wrappers.h"
 #include	"scLogger.h"
-#include	"PowerAnalysis-daemon.h"
-#include 	<wiringPi.h>
-
+#include	"VideoProcessing-daemon.h"
 
 #ifndef	AF_LOCAL
 #define AF_LOCAL	AF_UNIX // system may not support AF_LOCAL yet
 #endif		
-
 
 ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	size_t		nleft;
@@ -71,48 +68,6 @@ ssize_t	wrap_write(int fd, const void *vptr, size_t n) {
 	return(n);
 }
 
-const char  *getBatteryStatus(){
-	if (wiringPiSetupSys() == -1){
-    	warn_log("Couldn't setup WiringPi Library");
-    	return "ERROR with WiringPi";
-    }
-
-    pinMode (DONEPIN,INPUT);
-    pullUpDnControl (DONEPIN, PUD_UP);
-    pinMode (CHRGPIN,INPUT);
-    pullUpDnControl (CHRGPIN, PUD_UP);
-    pinMode (PGOODPIN,INPUT);
-    pullUpDnControl (CHRGPIN, PUD_UP);
-
-    /*
-    * Determine battery status From Adafruit's LiPo Charger:
-    *	D 	C 	Satus:
-    *   0   	1    	Battery Charging Complete
-    *   0 	0 	No Input Power Present
-    * 	1 	1  	Temperature/Timer Fault
-    *   1	0 	Charging (Or low battery, check previous state) 
-    *
-    */
-    if (digitalRead(DONEPIN) == 1){
-    	if (digitalRead(CHRGPIN) == 0){
-    		return "Battery is Charging.";
-                //TODO: Add Check for Low Battery, need to know previous state and light conditions
-                //return "Low Battery.";
-    	} else {
-    		return "Temperature/Timer Fault.";
-    	}
-    } else {
-    	if (digitalRead(CHRGPIN) == 1){
-    		return "Battery Charging Complete.";
-    	} else {
-    		return "Battery in use.";
-	}
-    }
-
-
-    return "ERROR READING STATUS";	
-}
-
 /* Builds JSON response according to paRequest contents */
 int build_response(paRequest *curr_request, char *ptr_response){
 	cJSON 			*root, *data;
@@ -124,49 +79,18 @@ int build_response(paRequest *curr_request, char *ptr_response){
 	cJSON_AddStringToObject(root, "type", "message");
 	cJSON_AddItemToObject(root, "data", data = cJSON_CreateObject());
 
-	if (strcmp(curr_request->type, "status-request") == 0){
-		if (strcmp(curr_request->data, "battery") == 0){
-			cJSON_AddStringToObject(data, "type", "battery");
-			cJSON_AddStringToObject(data, "battery", getBatteryStatus());
-		} else if (strcmp(curr_request->data, "consumption") == 0) {
-			cJSON_AddStringToObject(data, "type", "consumption");
-			//call function here to read current sensor, but for now fake value
-			cJSON_AddStringToObject(data, "avgCurrent", "467");
-		} else if (strcmp(curr_request->data, "remain") == 0) {
-			cJSON_AddStringToObject(data, "type", "remainingTime");
-			//call function here to read remaining time left on current battery charge
-			cJSON_AddStringToObject(data, "remainingTime", "124009");
-		} else {
-			cJSON_AddStringToObject(data, "type", "error");
-			cJSON_AddStringToObject(data, "message", "Requested status type not recognized.");
-			warn_log("Recieved unkown status request type.");
-		}
-
-		timegen = time(NULL);
-		loctime = localtime (&timegen);
-		timestr = asctime (loctime);
-		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		jsonPrint = cJSON_Print(root);
-		strcpy(ptr_response,jsonPrint);
-		free(jsonPrint);
-		cJSON_Delete(root);
-		return 1;
-		
-	}else{
-		cJSON_AddStringToObject(data, "type", "error");
-		cJSON_AddStringToObject(data, "message", "Request type not recognized.");
-		warn_log("Recieved unkown request type.");
-		
-		timegen = time(NULL);
-		loctime = localtime (&timegen);
-		timestr = asctime (loctime);
-		cJSON_AddStringToObject(data, "timeGenerated", timestr);
-		jsonPrint = cJSON_Print(root);
-		strcpy(ptr_response,jsonPrint);
-		free(jsonPrint);
-		cJSON_Delete(root);
-		return 1;
-	}
+	cJSON_AddStringToObject(data, "type", "videoProcessing");
+	cJSON_AddStringToObject(data, "message", "Message Received.");
+	debug_log("Message received and sent.");
+	timegen = time(NULL);
+	loctime = localtime (&timegen);
+	timestr = asctime (loctime);
+	cJSON_AddStringToObject(data, "timeGenerated", timestr);
+	jsonPrint = cJSON_Print(root);
+	strcpy(ptr_response,jsonPrint);
+	free(jsonPrint);
+	cJSON_Delete(root);
+	return 1;
 }
 
 /* Parses JSON request from request string and creates paRequest struct */
@@ -184,7 +108,7 @@ int parse_request(paRequest *curr_request, const void *vptr_request){
 		return -1;
 	}else{
 		jsonPrint = cJSON_Print(root);
-		debug_log("Request recieved:%s\n",jsonPrint);
+		debug_log("Request received:%s\n",jsonPrint);
 		free(jsonPrint);
 		curr_request->type = malloc(sizeof(char)*30);
 		strcpy(curr_request->type, cJSON_GetObjectItem(root,"type")->valuestring);
@@ -207,7 +131,7 @@ static ssize_t read_bytes(int fd, char *ptr) {
 	if (read_cnt <= 0) {
 again:
 		if ( (read_cnt = read(fd, read_buf, sizeof(read_buf))) < 0) {
-			if (errno == EINTR) /* EINTR = interupt syscall */
+			if (errno == EINTR) /* EINTR = interrupt syscall */
 				goto again;
 			return(-1);
 		} else if (read_cnt == 0)

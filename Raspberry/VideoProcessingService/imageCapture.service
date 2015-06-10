@@ -1,0 +1,13 @@
+[Unit]
+Description=SlugCam's Image/Video Capture and Processing Service 
+Documentation=https://github.com/SlugCam/SCnode/tree/master/Raspberry/VideoProcessingService
+#Wants=SCmanagement.service  -- We might want a parent service?
+#After=SCmanagement.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/SC-daemons/VideoProcessing-daemon
+
+[Install]
+WantedBy=multi-user.target
+
