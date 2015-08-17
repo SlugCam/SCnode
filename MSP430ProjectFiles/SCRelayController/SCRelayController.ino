@@ -3,7 +3,7 @@
  
  Date: 2/22/2015
  Author: Kevin Abas
- Last Modified: 6/2/2015
+ Last Modified: 7/28/2015
  File: 
  
  This program allows the MSP430 the ability to monitor the passive 
@@ -94,9 +94,8 @@ void setup() {
   pinMode(relay_reset_pin, OUTPUT);
   pinMode(pir_dout_pin, INPUT);
   pinMode(pir_enable_pin, OUTPUT);
-
-  attachInterrupt(pir_dout_pin, motion_detected, RISING);
   digitalWrite(pir_enable_pin, HIGH);
+  attachInterrupt(pir_dout_pin, motion_detected, RISING);
 
   disable_wdt(); // Watch Dog Timer
   
@@ -104,7 +103,11 @@ void setup() {
   
   _BIS_SR(GIE); //Enable Global Interupts
   my_clock.begin(); //Start RTC
-  set_sleep_timer(0, 5, 0); //auto sleep countdown is 5 min
+  turn_on_relay();
+  P1OUT |= BIT0;
+  end_timer_seconds   = 99;
+  end_timer_minutes   = 99;
+   end_timer_hours     = 99;
   
 }
 
@@ -124,8 +127,8 @@ void loop() {
   }else if(spi_interupt_flag == HIGH){  
     process_spi();
   }else if(motion_interupt_flag == HIGH){
-    motion_interupt_flag = LOW;  
     process_motion();
+    motion_interupt_flag = LOW;  
   }else if( (motion_interupt_flag == LOW) &&
              (timer_interupt_flag == LOW) &&
                (spi_interupt_flag == LOW) ){
@@ -139,14 +142,14 @@ void loop() {
 ******************************/
 void process_motion(void){
   //If relay isn't on turn it on
-  if(digitalRead(relay_set_pin) == LOW){
-       timer_running_flag = HIGH;
-       digitalWrite(relay_set_pin, HIGH);
-       digitalWrite(relay_reset_pin, LOW);
+  if(disable_pir_flag == LOW){
+    P1OUT |= BIT0;
+    turn_on_relay();
+    set_sleep_timer(0, 15, 0); //auto sleep countdown is 15 min
+    timer_running_flag    = HIGH;
+    //disable_pir_flag = HIGH;
+    //digitalWrite(pir_enable_pin, LOW); //disable PIR to save power
   }
-  set_sleep_timer(0, 5, 0); //auto sleep countdown is 5 min
-  timer_running_flag    = HIGH;
-  digitalWrite(pir_enable_pin, LOW); //disable PIR to save power
 }
 
 void process_spi(void){
@@ -194,21 +197,26 @@ void process_spi(void){
 }
 
 void process_timer_expired(void){
-  //now turn off relay
-    P1OUT = ~P1OUT; //for debugging
-   timer_interupt_flag = LOW;
-  if(digitalRead(relay_set_pin) == HIGH){
-      
-       digitalWrite(relay_set_pin, LOW);
-       digitalWrite(relay_reset_pin, HIGH);
+  if( ! (digitalRead(relay_set_pin))){
+      //periodic wakeup
+      timer_interupt_flag = LOW;
+      turn_on_relay();
+      set_sleep_timer(0, 15, 0); //auto sleep countdown is 15 min
+      P1OUT |= BIT0;
+  }else {
+      //now turn off relay
+     timer_interupt_flag = LOW;
+     P1OUT &= ~BIT0;
+     turn_off_relay();
+     timer_running_flag = LOW;
+     set_sleep_timer(0, 30, 0); // set next periodic wakeup
+     //if(disable_pir_flag == LOW){
+       /* Let PIR boot up, debounce */
+       //set_disable_timer(30,0); 
+       //disable_pir_flag = HIGH;
+       //digitalWrite(pir_enable_pin, HIGH);
+     //}
   }
-   timer_running_flag = LOW;
-   end_timer_seconds   = 99;
-   end_timer_minutes   = 99;
-   end_timer_hours     = 99;
-   if(disable_pir_flag == LOW){
-     digitalWrite(pir_enable_pin, HIGH);
-   }
 }
 
 /******************************
@@ -221,7 +229,7 @@ void motion_detected(void){
 
 //Using MSP430 native interupt notation
 interrupt(TIMER1_A0_VECTOR) Tic_Tac(void) {
-    my_clock++;            // Update time
+    my_clock++;           
     if( (my_clock.RTC_hr >= end_timer_hours) && 
           (my_clock.RTC_min >= end_timer_minutes) && 
             (my_clock.RTC_sec >= end_timer_seconds) ){
@@ -229,11 +237,16 @@ interrupt(TIMER1_A0_VECTOR) Tic_Tac(void) {
        __bic_status_register_on_exit(LPM3_bits);
     }
    if((my_clock.RTC_min >= disable_pir_minutes) && 
-            (my_clock.RTC_sec >= disable_pir_seconds) ){
+            (my_clock.RTC_sec >= disable_pir_seconds) ){    
       disable_pir_flag = LOW;
+      disable_pir_minutes = 99;
+      disable_pir_seconds = 99;
        digitalWrite(pir_enable_pin, HIGH);
        __bic_status_register_on_exit(LPM3_bits);
-    }  
+    }
+   if( motion_interupt_flag == HIGH){
+     __bic_status_register_on_exit(LPM3_bits);
+   }
 }
 
 //MSP430 SPI RX Service Routine
@@ -274,9 +287,7 @@ void led_delay(uint32_t d) {
 /* SPI Debug LED flash */
 void flash_spi_detected(void) {
     int i=0;
-    //P1OUT = ~P1OUT;
     for (i=0; i < 6; ++i) {
-        //P1OUT = ~P1OUT;
         led_delay(0x4fff);
         led_delay(0x4fff);
     }
@@ -313,6 +324,16 @@ void set_sleep_timer(int seconds, int minutes, int hours) {
    }
 }
 
+void set_disable_timer(int seconds, int minutes) {
+   disable_pir_seconds = (my_clock.RTC_sec + seconds ) % 60;
+   if( (disable_pir_seconds <= 30 && ( seconds >= 30 || my_clock.RTC_sec >= 30 ) )
+        || ( seconds >= 30 && my_clock.RTC_sec >= 30 )){
+     disable_pir_minutes = (my_clock.RTC_min + 1 + minutes) % 60;
+   }else{
+     disable_pir_minutes = (my_clock.RTC_min + minutes) % 60;
+   }
+}
+
 void get_disable_time(void) {
    strncpy(rx_seconds, &SPI_RX_buff[3], 2);
    num_seconds = atoi(rx_seconds);
@@ -338,6 +359,12 @@ void get_buffer_date(void) {
    num_day = atoi(rx_day);
 }
 
+void turn_on_relay(void) {
+   digitalWrite(relay_set_pin, HIGH);
+   digitalWrite(relay_reset_pin, LOW);
+}
 
-
-
+void turn_off_relay(void) {
+   digitalWrite(relay_set_pin, LOW);
+   digitalWrite(relay_reset_pin, HIGH);
+}
